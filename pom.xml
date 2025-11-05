@@ -13,7 +13,7 @@
     <description>Trabajo Práctico Integrador - Backend de Aplicaciones</description>
 
     <modules>
-        <module>servicio-clientes</module>
+        <module>servicioclientes</module>
         <!-- agregarás los demás después -->
     </modules>
 

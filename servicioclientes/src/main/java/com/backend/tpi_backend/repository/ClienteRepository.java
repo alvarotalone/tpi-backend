@@ -1,8 +1,8 @@
-package com.backend.tpi_backend.repository;
+package com.backend.tpi_backend.servicioclientes.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import com.backend.tpi_backend.model.Cliente;
+import com.backend.tpi_backend.servicioclientes.model.Cliente;
 
 @Repository
 public interface ClienteRepository extends JpaRepository<Cliente, Long> {

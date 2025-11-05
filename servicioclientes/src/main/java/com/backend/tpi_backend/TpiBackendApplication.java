@@ -1,4 +1,4 @@
-package com.backend.tpi_backend;
+package com.backend.tpi_backend.servicioclientes;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

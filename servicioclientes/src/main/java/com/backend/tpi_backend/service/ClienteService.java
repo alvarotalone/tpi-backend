@@ -1,7 +1,7 @@
-package com.backend.tpi_backend.service;
+package com.backend.tpi_backend.servicioclientes.service;
 
-import com.backend.tpi_backend.model.Cliente;
-import com.backend.tpi_backend.repository.ClienteRepository;
+import com.backend.tpi_backend.servicioclientes.model.Cliente;
+import com.backend.tpi_backend.servicioclientes.repository.ClienteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

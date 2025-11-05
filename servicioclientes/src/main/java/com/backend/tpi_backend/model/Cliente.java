@@ -1,4 +1,4 @@
-package com.backend.tpi_backend.model;
+package com.backend.tpi_backend.servicioclientes.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

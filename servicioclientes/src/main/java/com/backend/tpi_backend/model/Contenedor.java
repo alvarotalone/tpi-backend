@@ -1,4 +1,4 @@
-package com.backend.tpi_backend.model;
+package com.backend.tpi_backend.servicioclientes.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -19,8 +19,13 @@ public class Contenedor {
     private Double peso;
     private Double volumen;
 
+    // FK hacia EstadoContenedor
+    @ManyToOne
+    @JoinColumn(name = "id_estado_contenedor")
+    private EstadoContenedor estado;
+
     // FK a Cliente
     @ManyToOne
-    @JoinColumn(name = "cliente_id")
+    @JoinColumn(name = "id_cliente")
     private Cliente cliente;
 }
