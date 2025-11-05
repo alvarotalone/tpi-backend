@@ -14,6 +14,7 @@
 
     <modules>
         <module>servicioclientes</module>
+        <module>serviciocamiones</module>
         <!-- agregarás los demás después -->
     </modules>
 
