@@ -1,0 +1,47 @@
+-- ========================================================
+-- DATOS DE TABLAS BASE
+-- ========================================================
+
+-- 🔹 Tipos de Tramo
+INSERT INTO tipo_tramo (descripcion)
+VALUES 
+    ('Carretera'),
+    ('Autopista'),
+    ('Ruta provincial');
+
+-- 🔹 Estados de Tramo
+INSERT INTO estado_tramo (descripcion)
+VALUES 
+    ('Pendiente'),
+    ('En curso'),
+    ('Finalizado');
+
+-- 🔹 Rutas
+INSERT INTO ruta (cantidad_tramos, cantidad_depositos)
+VALUES 
+    (2, 1),
+    (3, 2);
+
+-- ========================================================
+-- DATOS DE TRAMOS (con relaciones ManyToOne locales)
+-- ========================================================
+
+INSERT INTO tramo (
+    latitud_origen,
+    longitud_origen,
+    latitud_destino,
+    longitud_destino,
+    id_tipo_tramo,
+    id_estado_tramo,
+    dominio_camion,
+    id_ruta,
+    fh_inicio_estimada,
+    fh_fin_estimada,
+    costo_aproximado,
+    costo_real
+) VALUES
+    (-31.4123, -64.1830, -31.5001, -64.2509, 1, 1, 'ABC123', 1, '2025-11-11T08:00:00', '2025-11-11T09:30:00', 1500.00, 0.00),
+
+    (-31.5001, -64.2509, -31.6005, -64.3200, 2, 2, 'DEF456', 1, '2025-11-11T09:30:00', '2025-11-11T11:00:00', 2200.00, 0.00),
+
+    (-31.6005, -64.3200, -31.7500, -64.4000, 3, 3, 'GHI789', 2, '2025-11-11T13:00:00', '2025-11-11T15:00:00', 3200.00, 3100.00);
