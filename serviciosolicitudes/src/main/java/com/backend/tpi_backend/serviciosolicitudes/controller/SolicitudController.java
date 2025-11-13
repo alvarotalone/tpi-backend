@@ -4,6 +4,7 @@ import com.backend.tpi_backend.serviciosolicitudes.model.Solicitud;
 import com.backend.tpi_backend.serviciosolicitudes.service.SolicitudService;
 import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudRequestDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudResponseDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.CambioEstadoSolicitudDTO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

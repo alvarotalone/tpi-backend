@@ -56,16 +56,38 @@ public class SolicitudService {
 
     // 🔹 Actualizar el estado de una solicitud
     public Solicitud updateEstado(Long id, Long idEstado) {
-        Optional<Solicitud> optSolicitud = repo.findById(id);
-        if (optSolicitud.isEmpty()) return null;
+    Optional<Solicitud> optSolicitud = repo.findById(id);
+    if (optSolicitud.isEmpty()) return null;
 
-        Solicitud solicitud = optSolicitud.get();
-        EstadoSolicitud estado = estadoRepo.findById(idEstado).orElse(null);
-        if (estado == null) return null;
+    Solicitud solicitud = optSolicitud.get();
 
-        solicitud.setEstado(estado);
-        return repo.save(solicitud);
+    EstadoSolicitud nuevoEstado = estadoRepo.findById(idEstado).orElse(null);
+    if (nuevoEstado == null) return null;
+
+    EstadoSolicitud estadoActual = solicitud.getEstado();
+    Long idActual = (estadoActual != null) ? estadoActual.getId() : null;
+    Long idNuevo  = nuevoEstado.getId();
+
+    if (!esTransicionValida(idActual, idNuevo)) {
+        throw new RuntimeException(
+                "Transición de estado no permitida: " + idActual + " -> " + idNuevo
+        );
     }
+
+    solicitud.setEstado(nuevoEstado);
+    return repo.save(solicitud);
+}
+
+
+
+    private boolean esTransicionValida(Long actual, Long nuevo) {
+    if (actual == null || nuevo == null) return false;
+
+    return (actual == 1 && nuevo == 2)   // BORRADOR -> PROGRAMADA
+        || (actual == 2 && nuevo == 3)   // PROGRAMADA -> EN_TRANSITO
+        || (actual == 3 && nuevo == 4);  // EN_TRANSITO -> ENTREGADA
+}
+
 
     // 🔹 Nuevo: crear solicitud usando DTO + integración con servicioclientes
     public SolicitudResponseDTO crearSolicitud(SolicitudRequestDTO dto) {
@@ -116,10 +138,10 @@ public class SolicitudService {
             idContenedor = contenedorCreado.getId();
         }
 
-        // 3) Estado inicial: CREADA
+        // 3) Estado inicial: BORRADOR
         EstadoSolicitud estadoInicial =
-                estadoRepo.findByDescripcion("CREADA")
-                        .orElseThrow(() -> new RuntimeException("No existe estado CREADA"));
+                estadoRepo.findByDescripcion("BORRADOR")
+                        .orElseThrow(() -> new RuntimeException("No existe estado BORRADOR"));
 
         // 4) Crear y guardar Solicitud
         Solicitud s = new Solicitud();

@@ -1,8 +1,9 @@
 -- Estados
 INSERT INTO estado_solicitud (id_estado_solicitud, descripcion) VALUES
-(1, 'CREADA'),
-(2, 'APROBADA'),
-(3, 'RECHAZADA');
+(1, 'BORRADOR'),
+(2, 'PROGRAMADA'),
+(3, 'EN_TRANSITO'),
+(4, 'ENTREGADA');
 
 -- Solicitudes de ejemplo (SIN id_solicitud)
 INSERT INTO solicitud 

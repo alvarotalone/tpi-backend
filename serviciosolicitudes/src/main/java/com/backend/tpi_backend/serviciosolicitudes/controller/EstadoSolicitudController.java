@@ -36,4 +36,7 @@ public class EstadoSolicitudController {
 
     @DeleteMapping("/{id}")
     public void eliminar(@PathVariable Long id) { service.delete(id); }
+
+    
+
 }
