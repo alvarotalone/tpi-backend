@@ -19,28 +19,39 @@ public class SolicitudController {
         this.service = service;
     }
 
+    // 🔹 Listar todas las solicitudes
     @GetMapping
-    public List<Solicitud> listar() { return service.findAll(); }
+    public List<Solicitud> listar() {
+        return service.findAll();
+    }
 
-    @GetMapping("/{numero}")
-    public ResponseEntity<Solicitud> obtener(@PathVariable Long numero) {
-        return service.findByNumero(numero)
+    // 🔹 Obtener una solicitud por ID
+    @GetMapping("/{id}")
+    public ResponseEntity<Solicitud> obtener(@PathVariable Long id) {
+        return service.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    // 🔹 Crear una nueva solicitud
     @PostMapping
-    public Solicitud crear(@RequestBody Solicitud s) { return service.save(s); }
+    public Solicitud crear(@RequestBody Solicitud solicitud) {
+        return service.save(solicitud);
+    }
 
-    @PutMapping("/{numero}/estado")
+    // 🔹 Actualizar el estado de una solicitud
+    @PutMapping("/{id}/estado")
     public ResponseEntity<Solicitud> actualizarEstado(
-            @PathVariable Long numero,
+            @PathVariable Long id,
             @RequestParam Long idEstado) {
-        Solicitud actualizado = service.updateEstado(numero, idEstado);
+        Solicitud actualizado = service.updateEstado(id, idEstado);
         if (actualizado == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(actualizado);
     }
 
-    @DeleteMapping("/{numero}")
-    public void eliminar(@PathVariable Long numero) { service.delete(numero); }
+    // 🔹 Eliminar una solicitud
+    @DeleteMapping("/{id}")
+    public void eliminar(@PathVariable Long id) {
+        service.delete(id);
+    }
 }

@@ -20,18 +20,36 @@ public class SolicitudService {
         this.estadoRepo = estadoRepo;
     }
 
-    public List<Solicitud> findAll() { return repo.findAll(); }
-    public Optional<Solicitud> findByNumero(Long numero) { return repo.findById(numero); }
-    public Solicitud save(Solicitud s) { return repo.save(s); }
-    public void delete(Long numero) { repo.deleteById(numero); }
+    // 🔹 Listar todas las solicitudes
+    public List<Solicitud> findAll() {
+        return repo.findAll();
+    }
 
-    public Solicitud updateEstado(Long numero, Long idEstado) {
-        Optional<Solicitud> opt = repo.findById(numero);
-        if (opt.isEmpty()) return null;
-        Solicitud s = opt.get();
-        EstadoSolicitud est = estadoRepo.findById(idEstado).orElse(null);
-        if (est == null) return null;
-        s.setEstado(est);
-        return repo.save(s);
+    // 🔹 Buscar solicitud por ID
+    public Optional<Solicitud> findById(Long id) {
+        return repo.findById(id);
+    }
+
+    // 🔹 Guardar una nueva solicitud
+    public Solicitud save(Solicitud solicitud) {
+        return repo.save(solicitud);
+    }
+
+    // 🔹 Eliminar una solicitud por ID
+    public void delete(Long id) {
+        repo.deleteById(id);
+    }
+
+    // 🔹 Actualizar el estado de una solicitud
+    public Solicitud updateEstado(Long id, Long idEstado) {
+        Optional<Solicitud> optSolicitud = repo.findById(id);
+        if (optSolicitud.isEmpty()) return null;
+
+        Solicitud solicitud = optSolicitud.get();
+        EstadoSolicitud estado = estadoRepo.findById(idEstado).orElse(null);
+        if (estado == null) return null;
+
+        solicitud.setEstado(estado);
+        return repo.save(solicitud);
     }
 }
