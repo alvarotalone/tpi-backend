@@ -2,7 +2,10 @@ package com.backend.tpi_backend.serviciosolicitudes.controller;
 
 import com.backend.tpi_backend.serviciosolicitudes.model.Solicitud;
 import com.backend.tpi_backend.serviciosolicitudes.service.SolicitudService;
+import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudRequestDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudResponseDTO;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,10 +36,11 @@ public class SolicitudController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // 🔹 Crear una nueva solicitud
+    // 🔹 Crear una nueva solicitud (USANDO DTO)
     @PostMapping
-    public Solicitud crear(@RequestBody Solicitud solicitud) {
-        return service.save(solicitud);
+    public ResponseEntity<SolicitudResponseDTO> crear(@RequestBody SolicitudRequestDTO dto) {
+        SolicitudResponseDTO resp = service.crearSolicitud(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(resp);
     }
 
     // 🔹 Actualizar el estado de una solicitud

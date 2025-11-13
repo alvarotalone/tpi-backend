@@ -2,8 +2,9 @@ package com.backend.tpi_backend.serviciosolicitudes.repository;
 
 import com.backend.tpi_backend.serviciosolicitudes.model.EstadoSolicitud;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import java.util.Optional;
 
-@Repository
 public interface EstadoSolicitudRepository extends JpaRepository<EstadoSolicitud, Long> {
+
+    Optional<EstadoSolicitud> findByDescripcion(String descripcion);
 }
