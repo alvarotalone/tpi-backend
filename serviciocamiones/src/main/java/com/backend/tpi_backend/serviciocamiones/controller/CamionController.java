@@ -1,6 +1,7 @@
 package com.backend.tpi_backend.serviciocamiones.controller;
 
 import com.backend.tpi_backend.serviciocamiones.model.Camion;
+import com.backend.tpi_backend.serviciocamiones.model.DetalleDisponibilidad;
 import com.backend.tpi_backend.serviciocamiones.service.CamionService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -51,19 +52,6 @@ public class CamionController {
         return ResponseEntity.noContent().build();
     }
 
-
-    //Llamada a metodos nuevos de service
-    //=== Cambiar disponibilidad ===
-    @PutMapping("/{dominio}/disponibilidad")
-    public ResponseEntity<Camion> cambiarDisponibilidad(
-            @PathVariable String dominio,
-            @RequestBody Map<String, Boolean> body) {
-
-        boolean disponible = body.getOrDefault("disponible", true);
-        Camion actualizado = camionService.cambiarDisponibilidad(dominio, disponible);
-        return ResponseEntity.ok(actualizado);
-    }
-
     //=== Validar capacidad maxima ====
     @PostMapping("/{dominio}/validar-capacidad")
     public ResponseEntity<Boolean> validarCapacidad(
@@ -84,5 +72,51 @@ public class CamionController {
         boolean puede = camionService.puedeTransportar(dominio, peso, volumen);
         return ResponseEntity.ok(puede);
     }
-}
 
+    // === Obtener camiones disponibles en un rango de fechas y un peso/volumen minimo ===
+    @GetMapping("/disponibles")
+    public ResponseEntity<List<Camion>> obtenerCamionesDisponibles(
+            @RequestParam String fechaInicio,
+            @RequestParam String fechaFin,
+            @RequestParam(required = false) Double peso,
+            @RequestParam(required = false) Double volumen) {
+
+        List<Camion> resultado;
+
+        if (peso == null && volumen == null) {
+            // Uso simple: solo ver quién está libre en esas fechas
+            resultado = camionService.obtenerCamionesDisponibles(fechaInicio, fechaFin);
+
+        } else if (peso == null || volumen == null) {
+            // Vino uno solo: eso es un uso incorrecto de la API
+            return ResponseEntity.badRequest().build();
+
+        } else {
+            // Caso principal para servicio rutas: fecha + capacidad
+            resultado = camionService.obtenerCamionesDisponibles(
+                    fechaInicio, fechaFin, peso, volumen);
+        }
+
+        return ResponseEntity.ok(resultado);
+    }
+
+
+
+    //=== Reservar un camion (marcarlo ocupado segun la ruta que se le asigno) ===
+    @PostMapping("/{dominio}/disponibilidades")
+    public ResponseEntity<DetalleDisponibilidad> reservarCamion(
+            @PathVariable String dominio,
+            @RequestBody Map<String, String> body) {
+
+        String fechaInicio = body.get("fechaInicio");
+        String fechaFin = body.get("fechaFin");
+
+        if (fechaInicio == null || fechaFin == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        DetalleDisponibilidad detalle = camionService.reservarCamion(dominio, fechaInicio, fechaFin);
+
+        return ResponseEntity.ok(detalle);
+    }
+}

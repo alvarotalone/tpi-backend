@@ -1,6 +1,7 @@
 package com.backend.tpi_backend.serviciocamiones.service;
 
 import com.backend.tpi_backend.serviciocamiones.model.Camion;
+import com.backend.tpi_backend.serviciocamiones.model.DetalleDisponibilidad;
 import com.backend.tpi_backend.serviciocamiones.repository.CamionRepository;
 
 import org.springframework.http.HttpStatus;
@@ -15,9 +16,15 @@ public class CamionService {
 
     private final CamionRepository camionRepository;
 
-    public CamionService(CamionRepository camionRepository) {
-        this.camionRepository = camionRepository;
-    }
+    private final DetalleDisponibilidadService detalleDisponibilidadService;
+
+
+public CamionService(CamionRepository camionRepository,
+                    DetalleDisponibilidadService detalleDisponibilidadService) {
+    this.camionRepository = camionRepository;
+    this.detalleDisponibilidadService = detalleDisponibilidadService;
+}
+
 
     public List<Camion> obtenerTodos() {
         return camionRepository.findAll();
@@ -35,29 +42,18 @@ public class CamionService {
         Camion existente = camionRepository.findById(camion.getDominio())
                 .orElseThrow(() -> new RuntimeException("Camión no encontrado"));
 
-        // Acá decidís qué campos se pueden modificar y cuáles NO
         existente.setTipoCamion(camion.getTipoCamion());
         existente.setTransportista(camion.getTransportista());
-        existente.setDisponible(camion.isDisponible());
+        // 👉 ya no existe existente.setDisponible(...)
 
         return camionRepository.save(existente);
     }
-
 
     public void eliminar(String dominio) {
         camionRepository.deleteById(dominio);
     }
 
-    public Camion cambiarDisponibilidad(String dominio, boolean disponible) {
-        Camion camion = camionRepository.findById(dominio)
-                .orElseThrow(() -> new RuntimeException("Camión no encontrado"));
-        camion.setDisponible(disponible);
-        return camionRepository.save(camion);
-    }
-
-    //Metodos nuevos
-
-    //=== Validar peso/volumen que le manden ===
+    // === Validar peso/volumen que le manden ===
     public boolean puedeTransportar(String dominioCamion, double pesoRequerido, double volumenRequerido) {
         Camion camion = camionRepository.findById(dominioCamion)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -83,5 +79,40 @@ public class CamionService {
         }
 
         return pesoRequerido <= maxPeso && volumenRequerido <= maxVolumen;
+    }
+
+    //=== Obtener camiones disponibles ===
+    public List<Camion> obtenerCamionesDisponibles(String fechaInicio, String fechaFin) {
+
+    List<Camion> todos = camionRepository.findAll();
+
+    return todos.stream()
+            .filter(c -> detalleDisponibilidadService.estaDisponible(c.getDominio(), fechaInicio, fechaFin))
+            .toList();
+    }
+
+    //=== Reservar un camion (marcarlo ocupado segun la ruta que se le asigno) ===
+    public DetalleDisponibilidad reservarCamion(String dominioCamion, String fechaInicio, String fechaFin) {
+        return detalleDisponibilidadService.crearBloqueo(dominioCamion, fechaInicio, fechaFin);
+    }
+
+    //=== Obtener camiones disponibles y que puedan cargar con el contenedor de la solicitud ===
+    public List<Camion> obtenerCamionesDisponibles(
+            String fechaInicio,
+            String fechaFin,
+            double pesoRequerido,
+            double volumenRequerido) {
+
+        // 1) Primero filtro por disponibilidad (reuso el método existente)
+        List<Camion> disponibles = obtenerCamionesDisponibles(fechaInicio, fechaFin);
+
+        // 2) Sobre esos, filtro por capacidad (reuso puedeTransportar)
+        return disponibles.stream()
+                .filter(c -> puedeTransportar(
+                        c.getDominio(),
+                        pesoRequerido,
+                        volumenRequerido
+                ))
+                .toList();
     }
 }

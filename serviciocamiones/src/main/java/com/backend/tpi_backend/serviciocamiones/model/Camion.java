@@ -21,6 +21,5 @@ public class Camion {
     @ManyToOne
     @JoinColumn(name = "id_transportista")
     private Transportista transportista;
-
-    private boolean disponible;
 }
+
