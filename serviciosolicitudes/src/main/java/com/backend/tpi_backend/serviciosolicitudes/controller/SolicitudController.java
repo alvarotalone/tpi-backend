@@ -59,4 +59,68 @@ public class SolicitudController {
     public void eliminar(@PathVariable Long id) {
         service.delete(id);
     }
+
+    @GetMapping("/{id}/tracking")
+public ResponseEntity<SolicitudResponseDTO> tracking(@PathVariable Long id) {
+    return service.findById(id)
+            .map(s -> {
+                SolicitudResponseDTO dto = new SolicitudResponseDTO();
+                dto.setIdSolicitud(s.getId());
+                dto.setIdCliente(s.getIdCliente());
+                dto.setIdContenedor(s.getIdContenedor());
+                dto.setLatitudOrigen(s.getLatitudOrigen());
+                dto.setLongitudOrigen(s.getLongitudOrigen());
+                dto.setLatitudDestino(s.getLatitudDestino());
+                dto.setLongitudDestino(s.getLongitudDestino());
+
+                dto.setCostoEstimado(
+                        s.getCostoEstimado() != null ? s.getCostoEstimado().doubleValue() : null
+                );
+                dto.setTiempoEstimado(
+                        s.getTiempoEstimado() != null ? s.getTiempoEstimado().doubleValue() : null
+                );
+
+                dto.setEstadoSolicitud(
+                        s.getEstado() != null ? s.getEstado().getDescripcion() : null
+                );
+
+                return ResponseEntity.ok(dto);
+            })
+            .orElse(ResponseEntity.notFound().build());
+}
+    // 🔹 Consultar solicitudes pendientes de entrega con filtros
+@GetMapping("/pendientes")
+public List<SolicitudResponseDTO> listarPendientes(
+        @RequestParam(required = false) String estado,
+        @RequestParam(required = false) Long idCliente,
+        @RequestParam(required = false) Long idContenedor) {
+
+    return service.buscarPendientes(estado, idCliente, idContenedor)
+            .stream()
+            .map(s -> {
+                SolicitudResponseDTO dto = new SolicitudResponseDTO();
+                dto.setIdSolicitud(s.getId());
+                dto.setIdCliente(s.getIdCliente());
+                dto.setIdContenedor(s.getIdContenedor());
+                dto.setLatitudOrigen(s.getLatitudOrigen());
+                dto.setLongitudOrigen(s.getLongitudOrigen());
+                dto.setLatitudDestino(s.getLatitudDestino());
+                dto.setLongitudDestino(s.getLongitudDestino());
+
+                dto.setCostoEstimado(
+                        s.getCostoEstimado() != null ? s.getCostoEstimado().doubleValue() : null
+                );
+                dto.setTiempoEstimado(
+                        s.getTiempoEstimado() != null ? s.getTiempoEstimado().doubleValue() : null
+                );
+
+                dto.setEstadoSolicitud(
+                        s.getEstado() != null ? s.getEstado().getDescripcion() : null
+                );
+
+                return dto;
+            })
+            .toList();
+}
+
 }

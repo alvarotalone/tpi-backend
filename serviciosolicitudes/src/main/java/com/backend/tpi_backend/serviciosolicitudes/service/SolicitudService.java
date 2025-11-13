@@ -200,4 +200,31 @@ public class SolicitudService {
 
         return resp;
     }
+
+    // 🔹 Solicitudes pendientes de entrega con filtros opcionales
+public List<Solicitud> buscarPendientes(String estado, Long idCliente, Long idContenedor) {
+    List<Solicitud> solicitudes = repo.findAll();
+
+    return solicitudes.stream()
+            // solo pendientes (no ENTREGADA)
+            .filter(s -> s.getEstado() != null
+                    && s.getEstado().getDescripcion() != null
+                    && !s.getEstado().getDescripcion().equalsIgnoreCase("ENTREGADA"))
+
+            // filtro por estado (opcional)
+            .filter(s -> estado == null
+                    || (s.getEstado() != null
+                        && s.getEstado().getDescripcion() != null
+                        && s.getEstado().getDescripcion().equalsIgnoreCase(estado)))
+
+            // filtro por cliente (opcional)
+            .filter(s -> idCliente == null
+                    || (s.getIdCliente() != null && s.getIdCliente().equals(idCliente)))
+
+            // filtro por contenedor (opcional)
+            .filter(s -> idContenedor == null
+                    || (s.getIdContenedor() != null && s.getIdContenedor().equals(idContenedor)))
+            .toList();
+}
+
 }
