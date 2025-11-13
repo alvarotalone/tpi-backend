@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/camiones")
@@ -49,4 +50,38 @@ public class CamionController {
         camionService.eliminar(dominio);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{dominio}/disponibilidad")
+    public ResponseEntity<Camion> cambiarDisponibilidad(
+            @PathVariable String dominio,
+            @RequestBody Map<String, Boolean> body) {
+
+        boolean disponible = body.getOrDefault("disponible", true);
+        Camion actualizado = camionService.cambiarDisponibilidad(dominio, disponible);
+        return ResponseEntity.ok(actualizado);
+    }
+
+    //Llamada a metodos nuevos de service
+
+    //=== Validar capacidad maxima ====
+    @PostMapping("/{dominio}/validar-capacidad")
+    public ResponseEntity<Boolean> validarCapacidad(
+            @PathVariable String dominio,
+            @RequestBody Map<String, Double> body) {
+
+        if (body == null || !body.containsKey("peso") || !body.containsKey("volumen")) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Double peso = body.get("peso");
+        Double volumen = body.get("volumen");
+
+        if (peso == null || volumen == null || peso <= 0 || volumen <= 0) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        boolean puede = camionService.puedeTransportar(dominio, peso, volumen);
+        return ResponseEntity.ok(puede);
+    }
 }
+
