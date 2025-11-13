@@ -2,6 +2,7 @@ package com.backend.tpi_backend.serviciocamiones.service;
 
 import com.backend.tpi_backend.serviciocamiones.model.Camion;
 import com.backend.tpi_backend.serviciocamiones.model.DetalleDisponibilidad;
+import com.backend.tpi_backend.serviciocamiones.model.TipoCamion;
 import com.backend.tpi_backend.serviciocamiones.repository.CamionRepository;
 
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 
 @Service
 public class CamionService {
@@ -114,5 +116,36 @@ public CamionService(CamionRepository camionRepository,
                         volumenRequerido
                 ))
                 .toList();
+    }
+
+    //****METODO ADICIONAL, no se si dejarlo *****/
+    // === Datos técnicos de un camión específico ===
+    public Optional<Map<String, Object>> obtenerDatosTecnicos(String dominioCamion) {
+
+        Optional<Camion> optionalCamion = camionRepository.findById(dominioCamion);
+
+        if (optionalCamion.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Camion camion = optionalCamion.get();
+
+        if (camion.getTipoCamion() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El camión no tiene tipo de camión asignado"
+            );
+        }
+
+        TipoCamion tipo = camion.getTipoCamion();
+
+        Map<String, Object> datos = Map.of(
+                "dominio", camion.getDominio(),
+                "id_tipo_camion", tipo.getId(),
+                "costo_base_km", tipo.getCosto_base_km(),
+                "consumo_combustible", tipo.getConsumo_combustible()
+        );
+
+        return Optional.of(datos);
     }
 }

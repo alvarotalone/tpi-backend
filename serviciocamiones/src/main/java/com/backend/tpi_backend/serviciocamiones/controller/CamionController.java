@@ -100,8 +100,6 @@ public class CamionController {
         return ResponseEntity.ok(resultado);
     }
 
-
-
     //=== Reservar un camion (marcarlo ocupado segun la ruta que se le asigno) ===
     @PostMapping("/{dominio}/disponibilidades")
     public ResponseEntity<DetalleDisponibilidad> reservarCamion(
@@ -118,5 +116,13 @@ public class CamionController {
         DetalleDisponibilidad detalle = camionService.reservarCamion(dominio, fechaInicio, fechaFin);
 
         return ResponseEntity.ok(detalle);
+    }
+
+    //=== Obtener datos tecnicos de un camion en especifico ===
+    @GetMapping("/{dominio}/datos-tecnicos")
+    public ResponseEntity<Map<String, Object>> obtenerDatosTecnicosCamion(@PathVariable String dominio) {
+        return camionService.obtenerDatosTecnicos(dominio)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }
