@@ -51,6 +51,9 @@ public class CamionController {
         return ResponseEntity.noContent().build();
     }
 
+
+    //Llamada a metodos nuevos de service
+    //=== Cambiar disponibilidad ===
     @PutMapping("/{dominio}/disponibilidad")
     public ResponseEntity<Camion> cambiarDisponibilidad(
             @PathVariable String dominio,
@@ -60,8 +63,6 @@ public class CamionController {
         Camion actualizado = camionService.cambiarDisponibilidad(dominio, disponible);
         return ResponseEntity.ok(actualizado);
     }
-
-    //Llamada a metodos nuevos de service
 
     //=== Validar capacidad maxima ====
     @PostMapping("/{dominio}/validar-capacidad")
