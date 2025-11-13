@@ -35,4 +35,12 @@ public class CamionService {
     public void eliminar(String dominio) {
         camionRepository.deleteById(dominio);
     }
+
+    public Camion cambiarDisponibilidad(String dominio, boolean disponible) {
+        Camion camion = camionRepository.findById(dominio)
+                .orElseThrow(() -> new RuntimeException("Camión no encontrado"));
+        camion.setDisponible(disponible);
+        return camionRepository.save(camion);
+    }
+
 }
