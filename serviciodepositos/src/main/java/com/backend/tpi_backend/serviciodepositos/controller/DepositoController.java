@@ -26,7 +26,7 @@ public class DepositoController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Deposito> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<Deposito> obtenerPorId(@PathVariable("id") Long id) {
         Deposito deposito = depositoService.buscarPorId(id);
         if (deposito == null) {
             return ResponseEntity.notFound().build();

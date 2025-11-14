@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 
 @Service
 public class TipoCamionService {
@@ -34,5 +35,16 @@ public class TipoCamionService {
 
     public void eliminar(Long id) {
         tipoCamionRepository.deleteById(id);
+    }
+
+    //=== Obtener datos tecnicos ===
+        public Optional<Map<String, Object>> obtenerDatosTecnicos(Long id) {
+        return tipoCamionRepository.findById(id)
+                .map(tipo -> Map.of(
+                        "id_tipo_camion", tipo.getId(),
+                        "nombre", tipo.getNombre(),
+                        "costo_base_km", tipo.getCosto_base_km(),
+                        "consumo_combustible", tipo.getConsumo_combustible()
+                ));
     }
 }

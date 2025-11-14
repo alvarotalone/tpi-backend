@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/tipos-camion")
@@ -46,5 +47,13 @@ public class TipoCamionController {
     public ResponseEntity<Void> eliminarTipo(@PathVariable Long id) {
         tipoCamionService.eliminar(id);
         return ResponseEntity.noContent().build();
+    }
+
+    //=== Obtener datos tecnicos ===
+    @GetMapping("/{id}/datos-tecnicos")
+    public ResponseEntity<Map<String, Object>> obtenerDatosTecnicos(@PathVariable Long id) {
+        return tipoCamionService.obtenerDatosTecnicos(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

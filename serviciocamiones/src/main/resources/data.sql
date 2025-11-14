@@ -7,6 +7,7 @@ VALUES
   (2, 'Camión rígido', 18000, 40.0, 95.0, 22.0),
   (3, 'Camión liviano', 8000, 20.0, 70.0, 15.5);
 
+
 -- ========================================
 -- TRANSPORTISTAS
 -- ========================================
@@ -16,11 +17,20 @@ VALUES
   (2, 'Lucía', 'Fernández', '3519876543', 'luciafdez@gmail.com'),
   (3, 'Carlos', 'Lopez', '3517539512', 'clopez@gmail.com');
 
+
 -- ========================================
 -- CAMIONES
 -- ========================================
-INSERT INTO camion (dominio, id_tipo_camion, id_transportista, disponible)
+INSERT INTO camion (dominio, id_tipo_camion, id_transportista)
 VALUES
-  ('AB123CD', 1, 1, TRUE),
-  ('CD456EF', 2, 2, TRUE),
-  ('EF789GH', 3, 3, FALSE);
+  ('AB123CD', 1, 1),
+  ('CD456EF', 2, 2),
+  ('EF789GH', 3, 3);
+
+-- ========================================
+-- DETALLES_DISPONIBILIDAD
+-- ========================================
+INSERT INTO detalle_disponibilidad (dominio_camion, fecha_inicio, fecha_fin)
+VALUES
+  ('AB123CD', '2025-11-10', '2025-11-15'),  -- ocupa del 10 al 15
+  ('CD456EF', '2025-11-20', '2025-11-25');  -- ocupa del 20 al 25
