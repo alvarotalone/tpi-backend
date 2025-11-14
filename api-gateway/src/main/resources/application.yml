@@ -1,0 +1,63 @@
+server:
+  port: 8080 # Puerto de entrada único
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        # 1. ServicioClientes (8081)
+        - id: clientes-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/clientes/**, /api/contenedores/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /$\{segment}
+
+        # 2. ServicioCamiones (8082)
+        - id: camiones-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/camiones/**, /api/tipos-camion/**, /api/transportistas/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /$\{segment}
+
+        # 3. ServicioTarifa (8083) - El tuyo
+        - id: tarifa-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/tarifas/**, /api/costos/**
+          # (No necesita RewritePath porque ya tiene /api)
+
+        # 4. ServicioRutas (8084)
+        - id: rutas-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/rutas/**, /api/tramos/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /$\{segment}
+
+        # 5. ServicioUsuarios (8085)
+        - id: usuarios-service
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/usuarios/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /$\{segment}
+
+        # 6. ServicioDepositos (8086) - El tuyo
+        - id: depositos-service
+          uri: http://localhost:8086
+          predicates:
+            - Path=/api/depositos/**, /api/ubicaciones/**, /api/ciudades/**, /api/provincias/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /$\{segment}
+
+        # 7. ServicioSolicitudes (8087)
+        - id: solicitudes-service
+          uri: http://localhost:8087
+          predicates:
+            - Path=/api/solicitudes/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /$\{segment}
