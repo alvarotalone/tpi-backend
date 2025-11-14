@@ -25,7 +25,7 @@ public class CiudadController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Ciudad> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<Ciudad> obtenerPorId(@PathVariable("id") Long id) {
         Ciudad ciudad = ciudadService.buscarPorId(id);
         if (ciudad == null) {
             return ResponseEntity.notFound().build();

@@ -25,7 +25,7 @@ public class ProvinciaController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Provincia> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<Provincia> obtenerPorId(@PathVariable("id") Long id) {
         Provincia provincia = provinciaService.buscarPorId(id);
         if (provincia == null) {
             return ResponseEntity.notFound().build();

@@ -25,7 +25,7 @@ public class UbicacionController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Ubicacion> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<Ubicacion> obtenerPorId(@PathVariable("id") Long id) {
         Ubicacion ubicacion = ubicacionService.buscarPorId(id);
         if (ubicacion == null) {
             return ResponseEntity.notFound().build();
