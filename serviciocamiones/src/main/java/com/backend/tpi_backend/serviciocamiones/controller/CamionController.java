@@ -125,4 +125,5 @@ public class CamionController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
 }

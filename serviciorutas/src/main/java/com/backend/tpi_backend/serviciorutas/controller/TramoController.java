@@ -46,4 +46,16 @@ public class TramoController {
     public void eliminar(@PathVariable Long id) {
         tramoService.delete(id);
     }
+
+    @PutMapping("/{id}/iniciar")
+    public ResponseEntity<String> iniciarTramo(@PathVariable Long id) {
+        tramoService.iniciarTramo(id);
+        return ResponseEntity.ok("Tramo iniciado correctamente");
+    }
+
+    @PutMapping("/{id}/finalizar")
+    public ResponseEntity<String> finalizarTramo(@PathVariable Long id) {
+        tramoService.finalizarTramo(id);
+        return ResponseEntity.ok("Tramo finalizado correctamente");
+    }
 }
