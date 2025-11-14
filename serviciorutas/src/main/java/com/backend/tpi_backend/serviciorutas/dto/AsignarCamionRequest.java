@@ -1,13 +1,10 @@
 package com.backend.tpi_backend.serviciorutas.dto;
 
+import lombok.Data;
+
+@Data
 public class AsignarCamionRequest {
     private String dominioCamion;
-
-    public String getDominioCamion() {
-        return dominioCamion;
-    }
-
-    public void setDominioCamion(String dominioCamion) {
-        this.dominioCamion = dominioCamion;
-    }
+    private double pesoContenedor;
+    private double volumenContenedor;
 }

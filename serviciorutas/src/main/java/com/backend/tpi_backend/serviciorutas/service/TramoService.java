@@ -7,30 +7,24 @@ import com.backend.tpi_backend.serviciorutas.repository.TramoRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 
-import com.backend.tpi_backend.serviciorutas.dto.CamionDTO;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class TramoService {
 
     private final TramoRepository repository;
-    private final RestTemplate restTemplate;
     private final EstadoTramoRepository estadoTramoRepository;
 
     @Value("${servicios.camiones.url}")
     private String urlServicioCamiones;
 
-    public TramoService(TramoRepository repository, RestTemplateBuilder builder, EstadoTramoRepository estadoTramoRepository) {
+    public TramoService(TramoRepository repository, EstadoTramoRepository estadoTramoRepository) {
         this.repository = repository;
-        this.restTemplate = builder.build();
         this.estadoTramoRepository = estadoTramoRepository;
     }
 
@@ -49,42 +43,23 @@ public class TramoService {
 
     public void delete(Long id) { repository.deleteById(id); }
 
-    public Tramo asignarCamionATramo(Long idTramo, String dominioCamion) {
-        // Buscar tramo existente
-        Tramo tramo = repository.findById(idTramo)
-                .orElseThrow(() -> new RuntimeException("Tramo no encontrado"));
+    // ============================================================
+    // ASIGNAR CAMIÓN A **TODOS** LOS TRAMOS DE UNA RUTA
+    // (usado por RutaService.asignarCamionARuta)
+    // ============================================================
 
-        // Consultar servicio de camiones
-        CamionDTO camion = restTemplate.getForObject(
-                urlServicioCamiones + "/" + dominioCamion,
-                CamionDTO.class
-        );
+    public void asignarCamionATodosLosTramos(Long idRuta, String dominioCamion) {
+        List<Tramo> tramos = repository.findByRuta_Id(idRuta);
 
-        if (camion == null) {
-            throw new RuntimeException("Camión no encontrado en servicio de camiones");
-        }
+        if (tramos.isEmpty())
+            throw new IllegalStateException("La ruta no tiene tramos");
 
-        if (!camion.isDisponible()) {
-            throw new RuntimeException("El camión no está disponible");
-        }
-
-        // Asignar camión al tramo
-        tramo.setDominioCamion(dominioCamion);
-        // Actualizar el estado del tramo a “ASIGNADO”
-        EstadoTramo estadoAsignado = estadoTramoRepository.findByDescripcion("Asignado")
-                .orElseThrow(() -> new RuntimeException("Estado 'ASIGNADO' no encontrado"));
-        tramo.setEstadoTramo(estadoAsignado);
-        repository.save(tramo);
-
-        // Notificar a servicio de camiones que ya no está disponible
-        restTemplate.put(
-                urlServicioCamiones + "/" + dominioCamion + "/disponibilidad",
-                Map.of("disponible", false)
-        );
-
-        return tramo;
+        tramos.forEach(t -> t.setDominioCamion(dominioCamion));
+        repository.saveAll(tramos);
     }
 
+
+    // INICIAR UN TRAMO (TRANSPORTISTA)
     public void iniciarTramo(Long idTramo) {
         Tramo tramo = repository.findById(idTramo)
             .orElseThrow(() -> new EntityNotFoundException("Tramo no encontrado"));
@@ -103,6 +78,12 @@ public class TramoService {
         repository.save(tramo);
     }
 
+    public List<Tramo> obtenerTramosPorRuta(Long idRuta) {
+        return repository.findByRuta_Id(idRuta);
+    }
+
+
+    // FINALIZAR UN TRAMO (TRANSPORTISTA)
     public void finalizarTramo(Long idTramo) {
         Tramo tramo = repository.findById(idTramo)
             .orElseThrow(() -> new EntityNotFoundException("Tramo no encontrado"));
@@ -117,12 +98,16 @@ public class TramoService {
             .orElseThrow(() -> new EntityNotFoundException("Estado FINALIZADO no definido"));
         tramo.setEstadoTramo(estadoFinalizado);
 
+        
+
+        /* 
         // Liberar camión para poder volver a usarlo
         Map<String, Boolean> body = Map.of("disponible", true);
         restTemplate.put(
             urlServicioCamiones + "/" + tramo.getDominioCamion() + "/disponibilidad",
             body
         );
+        */
 
 
         repository.save(tramo);
