@@ -10,7 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/usuarios")
-@Tag(name = "Usuarios", description = "Gestión de usuarios")
+@Tag(name = "Usuarios", description = "Gestión de usuarios del sistema")
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
@@ -20,8 +20,8 @@ public class UsuarioController {
     }
 
     @GetMapping
-    public List<Usuario> listarUsuarios() {
-        return usuarioService.obtenerTodos();
+    public ResponseEntity<List<Usuario>> listarUsuarios() {
+        return ResponseEntity.ok(usuarioService.obtenerTodos());
     }
 
     @GetMapping("/{nombreUser}")
@@ -33,13 +33,15 @@ public class UsuarioController {
 
     @PostMapping
     public ResponseEntity<Usuario> crearUsuario(@RequestBody Usuario usuario) {
-        return ResponseEntity.ok(usuarioService.guardar(usuario));
+        Usuario creado = usuarioService.guardar(usuario);
+        return ResponseEntity.ok(creado);
     }
 
     @PutMapping("/{nombreUser}")
-    public ResponseEntity<Usuario> actualizarUsuario(@PathVariable String nombreUser, @RequestBody Usuario usuario) {
-        usuario.setNombreUser(nombreUser);
-        return ResponseEntity.ok(usuarioService.actualizar(usuario));
+    public ResponseEntity<Usuario> actualizarUsuario(@PathVariable String nombreUser,
+                                                     @RequestBody Usuario usuario) {
+        Usuario actualizado = usuarioService.actualizar(nombreUser, usuario);
+        return ResponseEntity.ok(actualizado);
     }
 
     @DeleteMapping("/{nombreUser}")

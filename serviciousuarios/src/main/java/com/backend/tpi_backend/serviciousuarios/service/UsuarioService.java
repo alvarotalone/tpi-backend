@@ -28,8 +28,14 @@ public class UsuarioService {
         return usuarioRepository.save(usuario);
     }
 
-    public Usuario actualizar(Usuario usuario) {
-        return usuarioRepository.save(usuario);
+    public Usuario actualizar(String nombreUser, Usuario datos) {
+        Usuario existente = usuarioRepository.findById(nombreUser)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado con nombreUser " + nombreUser));
+
+        existente.setContraseña(datos.getContraseña());
+        existente.setRol(datos.getRol());
+
+        return usuarioRepository.save(existente);
     }
 
     public void eliminar(String nombreUser) {

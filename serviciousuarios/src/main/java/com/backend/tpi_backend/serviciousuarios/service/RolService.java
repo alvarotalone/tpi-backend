@@ -28,8 +28,14 @@ public class RolService {
         return rolRepository.save(rol);
     }
 
-    public Rol actualizar(Rol rol) {
-        return rolRepository.save(rol);
+    public Rol actualizar(Long id, Rol datos) {
+        Rol existente = rolRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Rol no encontrado con id " + id));
+
+        // solo actualizamos lo que tenga sentido
+        existente.setDescripcion(datos.getDescripcion());
+
+        return rolRepository.save(existente);
     }
 
     public void eliminar(Long id) {

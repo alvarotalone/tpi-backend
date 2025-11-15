@@ -20,8 +20,8 @@ public class RolController {
     }
 
     @GetMapping
-    public List<Rol> listarRoles() {
-        return rolService.obtenerTodos();
+    public ResponseEntity<List<Rol>> listarRoles() {
+        return ResponseEntity.ok(rolService.obtenerTodos());
     }
 
     @GetMapping("/{id}")
@@ -33,13 +33,14 @@ public class RolController {
 
     @PostMapping
     public ResponseEntity<Rol> crearRol(@RequestBody Rol rol) {
-        return ResponseEntity.ok(rolService.guardar(rol));
+        Rol creado = rolService.guardar(rol);
+        return ResponseEntity.ok(creado);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Rol> actualizarRol(@PathVariable Long id, @RequestBody Rol rol) {
-        rol.setIdRol(id);
-        return ResponseEntity.ok(rolService.actualizar(rol));
+        Rol actualizado = rolService.actualizar(id, rol);
+        return ResponseEntity.ok(actualizado);
     }
 
     @DeleteMapping("/{id}")
