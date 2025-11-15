@@ -1,4 +1,4 @@
-package com.backend.tpi_backend.serviciosolicitudes.dto.clientes;
+package com.backend.tpi_backend.serviciosolicitudes.dto;
 
 import lombok.Getter;
 import lombok.Setter;

@@ -2,8 +2,8 @@ package com.backend.tpi_backend.serviciosolicitudes.service;
 
 import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudRequestDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudResponseDTO;
-import com.backend.tpi_backend.serviciosolicitudes.dto.clientes.ClienteDTO;
-import com.backend.tpi_backend.serviciosolicitudes.dto.clientes.ContenedorDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.ClienteDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.ContenedorDTO;
 import com.backend.tpi_backend.serviciosolicitudes.model.EstadoSolicitud;
 import com.backend.tpi_backend.serviciosolicitudes.model.Solicitud;
 import com.backend.tpi_backend.serviciosolicitudes.repository.EstadoSolicitudRepository;
