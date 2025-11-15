@@ -112,4 +112,11 @@ public class RutaController {
 
         return ResponseEntity.ok(ruta);
     }
+
+    @GetMapping("/{idRuta}/distancia")
+    public ResponseEntity<Double> obtenerDistanciaRuta(@PathVariable Long idRuta) {
+        double distancia = rutaService.calcularDistanciaTotalRuta(idRuta);
+        return ResponseEntity.ok(distancia / 1000.0);   // en metros
+    }
+
 }

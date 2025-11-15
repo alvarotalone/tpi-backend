@@ -23,6 +23,7 @@ public class RutaService {
     private final RutaRepository rutaRepository;
     private final TramoRepository tramoRepository;
     private final RestTemplate restTemplate;
+    private final OsrmClient osrmClient;
 
     // URL base del microservicio CAMIONES (configurable en application.yml)
     @Value("${servicios.camiones.url}")
@@ -31,11 +32,13 @@ public class RutaService {
     public RutaService(
             RutaRepository rutaRepository,
             TramoRepository tramoRepository,
-            RestTemplateBuilder builder) {
+            RestTemplateBuilder builder,
+            OsrmClient osrmClient) {
 
         this.rutaRepository = rutaRepository;
         this.tramoRepository = tramoRepository;
         this.restTemplate = builder.build();
+        this.osrmClient = osrmClient;
     }
 
     // ============================================================
@@ -213,4 +216,33 @@ public class RutaService {
 
         return ruta;
     }
+
+    public double calcularDistanciaTramo(Tramo tramo) {
+
+        var resultado = osrmClient.obtenerRuta(
+                tramo.getLatitudOrigen(),
+                tramo.getLongitudOrigen(),
+                tramo.getLatitudDestino(),
+                tramo.getLongitudDestino()
+        );
+
+        return resultado.getDistance();  // distancia en metros
+    }
+
+    /**
+     * Calcula la distancia TOTAL (suma) de todos los tramos de una ruta.
+     */
+    public double calcularDistanciaTotalRuta(Long idRuta) {
+
+        List<Tramo> tramos = obtenerTramosDeRuta(idRuta);
+
+        if (tramos.isEmpty()) {
+            throw new IllegalStateException("La ruta no tiene tramos");
+        }
+
+        return tramos.stream()
+                .mapToDouble(this::calcularDistanciaTramo)
+                .sum();
+    }
+
 }
