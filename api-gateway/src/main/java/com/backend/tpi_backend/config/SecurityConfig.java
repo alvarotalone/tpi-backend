@@ -49,16 +49,16 @@ public class SecurityConfig {
                 .pathMatchers(HttpMethod.PUT, "/api/tramos/{id}/finalizar").hasRole("TRANSPORTISTA")
 
                 // --- REGLAS ROL: ADMIN (Operador) ---
-                .pathMatchers("/api/tarifas/**").hasRole("ADMIN")
-                .pathMatchers("/api/depositos/**").hasRole("ADMIN")
-                .pathMatchers("/api/camiones/**").hasRole("ADMIN")
-                .pathMatchers("/api/tipos-camion/**").hasRole("ADMIN")
-                .pathMatchers("/api/transportistas/**").hasRole("ADMIN")
-                .pathMatchers("/api/clientes/**").hasRole("ADMIN")
+                .pathMatchers("/api/tarifas/**").hasAnyRole("ADMIN","OPERADOR")
+                .pathMatchers("/api/depositos/**").hasAnyRole("ADMIN","OPERADOR")
+                .pathMatchers("/api/camiones/**").hasAnyRole("ADMIN","OPERADOR")
+                .pathMatchers("/api/tipos-camion/**").hasAnyRole("ADMIN","OPERADOR")
+                .pathMatchers("/api/transportistas/**").hasAnyRole("ADMIN","OPERADOR")
+                .pathMatchers("/api/clientes/**").hasAnyRole("ADMIN","OPERADOR")
                 .pathMatchers("/api/usuarios/**").hasRole("ADMIN")
-                .pathMatchers("/api/rutas/**").hasRole("ADMIN")
-                .pathMatchers(HttpMethod.PUT, "/api/solicitudes/{id}/estado").hasRole("ADMIN")
-                .pathMatchers(HttpMethod.GET, "/api/solicitudes", "/api/solicitudes/**").hasRole("ADMIN")
+                .pathMatchers("/api/rutas/**").hasAnyRole("ADMIN","OPERADOR")
+                .pathMatchers(HttpMethod.PUT, "/api/solicitudes/{id}/estado").hasAnyRole("ADMIN","OPERADOR")
+                .pathMatchers(HttpMethod.GET, "/api/solicitudes").hasAnyRole("ADMIN","OPERADOR")
 
                 // --- REGLAS COMPARTIDAS (Cualquier rol logueado) ---
                 .pathMatchers(HttpMethod.GET, "/api/solicitudes/{id}/precio-estimado").authenticated()
