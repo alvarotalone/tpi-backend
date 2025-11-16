@@ -139,4 +139,15 @@ public class SolicitudController {
         return ResponseEntity.ok(resp);
     }
 
+    @PutMapping("/{idSolicitud}/asignar-camion/{dominio}")
+    public ResponseEntity<?> asignarCamion(
+            @PathVariable Long idSolicitud,
+            @PathVariable String dominio) {
+
+        return ResponseEntity.ok(
+                service.asignarCamion(idSolicitud, dominio)
+        );
+    }
+
+
 }

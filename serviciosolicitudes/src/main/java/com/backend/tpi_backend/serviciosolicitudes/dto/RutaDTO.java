@@ -6,6 +6,6 @@ import lombok.Data;
 public class RutaDTO {
     private Long id;
     private Double distancia;
-    private Integer duracion;   // minutos
+    private Integer duracionEstimada;   // minutos
 }
 

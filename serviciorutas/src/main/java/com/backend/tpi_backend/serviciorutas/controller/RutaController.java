@@ -85,35 +85,20 @@ public class RutaController {
         return ResponseEntity.ok(tramos);
     }
 
-    // ============================================================
-    // ASIGNAR CAMIÓN A UNA RUTA (**TEMPORAL** hasta integrar con Solicitud)
-    // ============================================================
 
-    /**
-     * Endpoint temporal.
-     * Solicitud va a usar esta operación internamente más adelante.
-     * 
-     * JSON esperado:
-     * {
-     *   "dominioCamion": "AA123BB",
-     *   "pesoContenedor": 2000,
-     *   "volumenContenedor": 12
-     * }
-     */
     @PutMapping("/{idRuta}/asignar-camion")
-    public ResponseEntity<Ruta> asignarCamion(
+    public ResponseEntity<Void> asignarCamion(
             @PathVariable Long idRuta,
             @RequestBody AsignarCamionRequest request) {
 
-        Ruta ruta = rutaService.asignarCamionARuta(
-                        idRuta,
-                        request.getDominioCamion(),
-                        request.getPesoContenedor(),
-                        request.getVolumenContenedor()
-                );
+        rutaService.asignarCamionARuta(
+            idRuta,
+            request.getDominioCamion()
+        );
 
-        return ResponseEntity.ok(ruta);
+        return ResponseEntity.ok().build();
     }
+
 
     @GetMapping("/{idRuta}/distancia")
     public ResponseEntity<Double> obtenerDistanciaRuta(@PathVariable Long idRuta) {

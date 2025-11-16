@@ -26,11 +26,15 @@ public class ContenedorController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Contenedor> obtenerPorId(@PathVariable Long id) {
+    public ResponseEntity<Contenedor> obtenerPorId(
+            @PathVariable(name = "id", required = true) Long id) {
+
         return contenedorService.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+
+
 
     @PostMapping
     public Contenedor crear(@RequestBody Contenedor contenedor) {

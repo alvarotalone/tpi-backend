@@ -5,6 +5,4 @@ import lombok.Data;
 @Data
 public class AsignarCamionRequest {
     private String dominioCamion;
-    private double pesoContenedor;
-    private double volumenContenedor;
 }

@@ -78,6 +78,7 @@ public class RutaService {
         Ruta existente = getById(id);
         existente.setCantidadTramos(updated.getCantidadTramos());
         existente.setCantidadDepositos(updated.getCantidadDepositos());
+        existente.setDuracionEstimada(updated.getDuracionEstimada());
         return rutaRepository.save(existente);
     }
 
@@ -180,7 +181,7 @@ public class RutaService {
      *  6. Reserva disponibilidad
      *  7. Asigna dominio a ruta
      *  8. Asigna dominio a cada tramo
-     */
+    
     public Ruta asignarCamionARuta(Long idRuta, String dominioCamion,
                                    double pesoContenedor, double volumenContenedor) {
 
@@ -228,6 +229,24 @@ public class RutaService {
 
         return ruta;
     }
+    */
+
+    public void asignarCamionARuta(Long idRuta, String dominioCamion) {
+
+        if (!rutaRepository.existsById(idRuta)) {
+            throw new IllegalStateException("La ruta no existe");
+        }
+
+        List<Tramo> tramos = obtenerTramosDeRuta(idRuta);
+
+        if (tramos.isEmpty()) {
+            throw new IllegalStateException("La ruta no tiene tramos");
+        }
+
+        tramos.forEach(t -> t.setDominioCamion(dominioCamion));
+
+        tramoRepository.saveAll(tramos);
+    }
 
     public double calcularDistanciaTramo(Tramo tramo) {
 
@@ -267,6 +286,7 @@ public class RutaService {
         Ruta ruta = new Ruta();
         ruta.setCantidadTramos(1);
         ruta.setCantidadDepositos(0);
+        ruta.setDuracionEstimada( (int) rutaOSRM.getDuration() );
         ruta = rutaRepository.save(ruta);
 
         Tramo t = new Tramo();
@@ -311,6 +331,7 @@ public class RutaService {
         Ruta ruta = new Ruta();
         ruta.setCantidadTramos(2);
         ruta.setCantidadDepositos(0);
+        ruta.setDuracionEstimada((int) duracionTotal);
         ruta = rutaRepository.save(ruta);
 
         // === Crear Tramo 1 : Origen → Via Norte ===
@@ -367,6 +388,7 @@ public class RutaService {
         Ruta ruta = new Ruta();
         ruta.setCantidadTramos(2);
         ruta.setCantidadDepositos(0);
+        ruta.setDuracionEstimada((int) duracionTotal);
         ruta = rutaRepository.save(ruta);
 
         // === Tramo 1 ===

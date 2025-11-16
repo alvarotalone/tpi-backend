@@ -22,4 +22,7 @@ public class Ruta {
 
     @Column(name = "cantidad_depositos", nullable = false)
     private Integer cantidadDepositos;
+
+    @Column(name = "duracion_estimada")
+    private Integer duracionEstimada;
 }

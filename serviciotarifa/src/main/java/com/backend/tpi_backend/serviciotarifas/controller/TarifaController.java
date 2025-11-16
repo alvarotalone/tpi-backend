@@ -1,5 +1,6 @@
 package com.backend.tpi_backend.serviciotarifas.controller;
 
+import com.backend.tpi_backend.serviciotarifas.dto.CostoTotalDTO;
 import com.backend.tpi_backend.serviciotarifas.model.Tarifa;
 import com.backend.tpi_backend.serviciotarifas.service.TarifaService;
 import org.springframework.http.ResponseEntity;
@@ -51,5 +52,11 @@ public class TarifaController {
     public ResponseEntity<List<Tarifa>> getTarifasVigentes(@RequestParam("fecha") String fechaStr) {
         LocalDate fecha = LocalDate.parse(fechaStr);
         return ResponseEntity.ok(tarifaService.getTarifasVigentes(fecha));
+    }
+
+    @PostMapping("/calcular-total")
+    public ResponseEntity<Double> calcularCostoTotal(@RequestBody CostoTotalDTO request) {
+        Double total = tarifaService.calcularCostoTotal(request);
+        return ResponseEntity.ok(total);
     }
 }

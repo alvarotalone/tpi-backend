@@ -2,6 +2,8 @@ package com.backend.tpi_backend.serviciosolicitudes.service;
 
 import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudRequestDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudResponseDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.TramoDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.CamionDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.ClienteDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.ContenedorDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.RutaDTO;
@@ -16,6 +18,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,6 +36,9 @@ public class SolicitudService {
 
     @Value("${servicios.rutas.url}")
     private String rutasBaseUrl;
+
+    @Value("${servicio.camiones.url}")
+    private String camionesBaseUrl;
 
     public SolicitudService(SolicitudRepository repo,
                             EstadoSolicitudRepository estadoRepo,
@@ -248,21 +255,21 @@ public class SolicitudService {
 
         // ### Ruta Directa ###
         var directa = restTemplate.postForObject(
-                rutasBaseUrl + "/generar-directa",
+                rutasBaseUrl + "/rutas/generar-directa",
                 Map.of("latO", latO, "lonO", lonO, "latD", latD, "lonD", lonD),
                 RutaTentativaDTO.class
         );
 
         // ### Ruta Norte ###
         var norte = restTemplate.postForObject(
-                rutasBaseUrl + "/generar-norte",
+                rutasBaseUrl + "/rutas/generar-norte",
                 Map.of("latO", latO, "lonO", lonO, "latD", latD, "lonD", lonD),
                 RutaTentativaDTO.class
         );
 
         // ### Ruta Este ###
         var este = restTemplate.postForObject(
-                rutasBaseUrl + "/generar-este",
+                rutasBaseUrl + "/rutas/generar-este",
                 Map.of("latO", latO, "lonO", lonO, "latD", latD, "lonD", lonD),
                 RutaTentativaDTO.class
         );
@@ -279,7 +286,7 @@ public class SolicitudService {
         // 2) Validar que la ruta exista (pero sin usar este resultado)
         try {
             restTemplate.getForObject(
-                    rutasBaseUrl + "/" + idRuta,
+                    rutasBaseUrl + "/rutas/" + idRuta,
                     Object.class
             );
         } catch (HttpClientErrorException.NotFound e) {
@@ -288,7 +295,7 @@ public class SolicitudService {
 
         // 👉👉 **OBTENER LA RUTA**
         RutaDTO ruta = restTemplate.getForObject(
-                rutasBaseUrl + "/" + idRuta,
+                rutasBaseUrl + "/rutas/" + idRuta,
                 RutaDTO.class
         );
 
@@ -316,33 +323,174 @@ public class SolicitudService {
         solicitud.setEstado(estadoProgramada);
 
         // 👉👉 **Ahora sí podés usar la duración**
-        solicitud.setTiempoEstimado(ruta.getDuracion());
+        solicitud.setTiempoEstimado(ruta.getDuracionEstimada());
 
         solicitud = repo.save(solicitud);
 
-        // 5) DTO respuesta
-        SolicitudResponseDTO resp = new SolicitudResponseDTO();
-        resp.setIdSolicitud(solicitud.getId());
-        resp.setIdCliente(solicitud.getIdCliente());
-        resp.setIdContenedor(solicitud.getIdContenedor());
-        resp.setLatitudOrigen(solicitud.getLatitudOrigen());
-        resp.setLongitudOrigen(solicitud.getLongitudOrigen());
-        resp.setLatitudDestino(solicitud.getLatitudDestino());
-        resp.setLongitudDestino(solicitud.getLongitudDestino());
+        return mapToDTO(solicitud);
+    }
 
-        resp.setCostoEstimado(
-                solicitud.getCostoEstimado() != null ? solicitud.getCostoEstimado().doubleValue() : null
+    public SolicitudResponseDTO asignarCamion(Long idSolicitud, String dominioCamion) {
+
+        // 1️⃣ Buscar solicitud
+        Solicitud solicitud = repo.findById(idSolicitud)
+                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+
+        if (solicitud.getIdRuta() == null) {
+            throw new RuntimeException("La solicitud no tiene una ruta asignada");
+        }
+
+        Long idRuta = solicitud.getIdRuta();
+
+
+        // 2️⃣ Obtener contenedor (peso y volumen)
+        ContenedorDTO cont = restTemplate.getForObject(
+                clientesBaseUrl + "/contenedores/" + solicitud.getIdContenedor(),
+                ContenedorDTO.class
         );
 
-        resp.setTiempoEstimado(
-                solicitud.getTiempoEstimado() != null ? solicitud.getTiempoEstimado().doubleValue() : null
+        if (cont == null) {
+            throw new RuntimeException("No se pudo obtener el contenedor desde servicioclientes");
+        }
+
+        double peso = cont.getPeso();
+        double volumen = cont.getVolumen();
+
+
+        // 3️⃣ Obtener datos de ruta
+        RutaDTO ruta = restTemplate.getForObject(
+                rutasBaseUrl + "/rutas/" + idRuta,
+                RutaDTO.class
         );
 
-        resp.setEstadoSolicitud(
-                solicitud.getEstado() != null ? solicitud.getEstado().getDescripcion() : null
+        if (ruta == null) {
+            throw new RuntimeException("Ruta no encontrada en serviciorutas");
+        }
+
+
+        // 4️⃣ Obtener tramos
+        TramoDTO[] tramos = restTemplate.getForObject(
+                rutasBaseUrl + "/rutas/" + idRuta + "/tramos",
+                TramoDTO[].class
         );
 
-        return resp;
+        if (tramos == null || tramos.length == 0) {
+            throw new RuntimeException("La ruta no tiene tramos");
+        }
+
+
+        // 4.1️⃣ Calcular fechas aproximadas
+        LocalDateTime fechaInicio = LocalDateTime.now();
+        LocalDateTime fechaFin = fechaInicio.plusSeconds(ruta.getDuracionEstimada());
+
+
+        // 5️⃣ VALIDAR CAPACIDAD (tu API propia)
+        Boolean puedeLlevar = restTemplate.postForObject(
+                camionesBaseUrl + "/camiones/" + dominioCamion + "/validar-capacidad",
+                Map.of("peso", peso, "volumen", volumen),
+                Boolean.class
+        );
+
+        if (!Boolean.TRUE.equals(puedeLlevar)) {
+            throw new RuntimeException("El camión no puede transportar el contenedor");
+        }
+
+
+        // 6️⃣ Validar disponibilidad
+        CamionDTO[] disponibles = restTemplate.getForObject(
+                camionesBaseUrl + "/camiones/disponibles?fechaInicio=" + fechaInicio +
+                        "&fechaFin=" + fechaFin +
+                        "&peso=" + peso +
+                        "&volumen=" + volumen,
+                CamionDTO[].class
+        );
+
+        boolean disponible = Arrays.stream(disponibles)
+                .anyMatch(c -> c.getDominio().equals(dominioCamion));
+
+        if (!disponible) {
+            throw new RuntimeException("El camión no está disponible en ese rango de fechas");
+        }
+
+
+        // 7️⃣ Reservar camión según TU API
+        restTemplate.postForObject(
+                camionesBaseUrl + "/camiones/" + dominioCamion + "/disponibilidades",
+                Map.of(
+                        "fechaInicio", fechaInicio.toString(),
+                        "fechaFin", fechaFin.toString()
+                ),
+                Void.class
+        );
+
+
+        // 8️⃣ Asignar camión a los tramos en MS Rutas
+        restTemplate.put(
+                rutasBaseUrl + "/rutas/" + idRuta + "/asignar-camion",
+                Map.of("dominioCamion", dominioCamion)
+        );
+
+
+        // 9️⃣ Guardar en solicitud
+        solicitud.setDominioCamion(dominioCamion);
+
+
+        // 🔟 Cambiar estado
+        EstadoSolicitud estadoProgramada = estadoRepo.findByDescripcion("PROGRAMADA")
+                .orElseThrow();
+
+        solicitud.setEstado(estadoProgramada);
+
+
+        // 1️⃣1️⃣ Guardar
+        solicitud = repo.save(solicitud);
+
+
+        // 1️⃣2️⃣ Devolver DTO
+        return mapToDTO(solicitud);
+    }
+
+
+
+    private void rutaServiceAsignarCamion(Long idRuta, String dominio, double peso, double volumen) {
+
+        var body = Map.of(
+            "dominioCamion", dominio,
+            "peso", peso,
+            "volumen", volumen
+        );
+
+        restTemplate.postForObject(
+                rutasBaseUrl + "/" + idRuta + "/asignar-camion",
+                body,
+                Void.class
+        );
+    }
+
+    private SolicitudResponseDTO mapToDTO(Solicitud s) {
+        SolicitudResponseDTO dto = new SolicitudResponseDTO();
+
+        dto.setIdSolicitud(s.getId());
+        dto.setIdCliente(s.getIdCliente());
+        dto.setIdContenedor(s.getIdContenedor());
+        dto.setLatitudOrigen(s.getLatitudOrigen());
+        dto.setLongitudOrigen(s.getLongitudOrigen());
+        dto.setLatitudDestino(s.getLatitudDestino());
+        dto.setLongitudDestino(s.getLongitudDestino());
+
+        dto.setCostoEstimado(
+                s.getCostoEstimado() != null ? s.getCostoEstimado().doubleValue() : null
+        );
+
+        dto.setTiempoEstimado(
+                s.getTiempoEstimado() != null ? s.getTiempoEstimado().doubleValue() : null
+        );
+
+        dto.setEstadoSolicitud(
+                s.getEstado() != null ? s.getEstado().getDescripcion() : null
+        );
+
+        return dto;
     }
 
 }
