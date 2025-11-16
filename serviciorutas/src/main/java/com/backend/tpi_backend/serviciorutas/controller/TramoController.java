@@ -58,4 +58,18 @@ public class TramoController {
         tramoService.finalizarTramo(id);
         return ResponseEntity.ok("Tramo finalizado correctamente");
     }
+
+    @GetMapping("/por-camion/{dominio}")
+    public ResponseEntity<?> obtenerTramosPorCamion(@PathVariable String dominio) {
+
+        List<Tramo> tramos = tramoService.obtenerTramosPorCamion(dominio);
+
+        if (tramos.isEmpty()) {
+            return ResponseEntity.noContent().build(); // 204 -> No hay registros
+        }
+
+        return ResponseEntity.ok(tramos); // 200 + lista
+    }
+
+
 }

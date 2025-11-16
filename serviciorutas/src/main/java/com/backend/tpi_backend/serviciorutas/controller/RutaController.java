@@ -106,19 +106,15 @@ public class RutaController {
         return ResponseEntity.ok(distancia / 1000.0);   // en km
     }
 
+    /*
     @PostMapping("/generar-directa")
     public ResponseEntity<RutaTentativaDTO> generarDirecta(@RequestBody CoordenadasDTO dto) {
         return ResponseEntity.ok(rutaService.generarRutaDirecta(dto));
     }
+    */
 
-    @PostMapping("/generar-norte")
-    public ResponseEntity<RutaTentativaDTO> generarNorte(@RequestBody CoordenadasDTO dto) {
-        return ResponseEntity.ok(rutaService.generarRutaNorte(dto));
+   @PostMapping("/tentativas")
+    public ResponseEntity<List<RutaTentativaDTO>> generarTentativas(@RequestBody CoordenadasDTO dto) {
+        return ResponseEntity.ok(rutaService.generarTodasLasRutas(dto));
     }
-
-    @PostMapping("/generar-este")
-    public ResponseEntity<RutaTentativaDTO> generarEste(@RequestBody CoordenadasDTO dto) {
-        return ResponseEntity.ok(rutaService.generarRutaEste(dto));
-    }
-
 }

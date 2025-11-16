@@ -3,11 +3,12 @@
 -- ========================================================
 
 -- 🔹 Tipos de Tramo
-INSERT INTO tipo_tramo (descripcion)
-VALUES 
-    ('Carretera'),
-    ('Autopista'),
-    ('Ruta provincial');
+INSERT INTO tipo_tramo (id_tipo_tramo, descripcion) VALUES
+(1, 'origen-destino'),
+(2, 'origen-deposito'),
+(3, 'deposito-deposito'),
+(4, 'deposito-destino');
+
 
 -- 🔹 Estados de Tramo
 INSERT INTO estado_tramo (descripcion)

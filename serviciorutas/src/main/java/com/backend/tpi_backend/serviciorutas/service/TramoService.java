@@ -113,4 +113,12 @@ public class TramoService {
         repository.save(tramo);
     }
 
+    /**
+     * Devuelve todos los tramos que tienen asignado ese dominio de camión.
+     * (Es decir, tramos de rutas a las que se les asignó ese camión).
+     */
+    public List<Tramo> obtenerTramosPorCamion(String dominioCamion) {
+        return repository.findByDominioCamion(dominioCamion);
+    }
+
 }

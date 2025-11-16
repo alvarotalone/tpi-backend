@@ -2,6 +2,7 @@ package com.backend.tpi_backend.serviciorutas.service;
 
 import com.backend.tpi_backend.serviciorutas.dto.CamionDTO;
 import com.backend.tpi_backend.serviciorutas.dto.CoordenadasDTO;
+import com.backend.tpi_backend.serviciorutas.dto.DepositoDTO;
 import com.backend.tpi_backend.serviciorutas.model.Ruta;
 import com.backend.tpi_backend.serviciorutas.model.Tramo;
 import com.backend.tpi_backend.serviciorutas.repository.EstadoTramoRepository;
@@ -9,7 +10,7 @@ import com.backend.tpi_backend.serviciorutas.repository.RutaRepository;
 import com.backend.tpi_backend.serviciorutas.repository.TipoTramoRepository;
 import com.backend.tpi_backend.serviciorutas.repository.TramoRepository;
 import com.backend.tpi_backend.serviciorutas.dto.RutaTentativaDTO;
-
+import com.backend.tpi_backend.serviciorutas.client.DepositoClient;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -31,6 +32,7 @@ public class RutaService {
     private final OsrmClient osrmClient;
     private final EstadoTramoRepository estadoTramoRepository;
     private final TipoTramoRepository tipoTramoRepository;
+    private final DepositoClient depositoClient;
 
 
     // URL base del microservicio CAMIONES (configurable en application.yml)
@@ -43,7 +45,8 @@ public class RutaService {
             EstadoTramoRepository estadoTramoRepository,
             TipoTramoRepository tipoTramoRepository,
             RestTemplateBuilder builder,
-            OsrmClient osrmClient) {
+            OsrmClient osrmClient,
+            DepositoClient depositoClient) {
 
         this.rutaRepository = rutaRepository;
         this.tramoRepository = tramoRepository;
@@ -51,6 +54,7 @@ public class RutaService {
         this.tipoTramoRepository = tipoTramoRepository;
         this.restTemplate = builder.build();
         this.osrmClient = osrmClient;
+        this.depositoClient = depositoClient;
     }
 
     // ============================================================
@@ -309,119 +313,87 @@ public class RutaService {
         return resp;
     }
 
-    public RutaTentativaDTO generarRutaNorte(CoordenadasDTO dto) {
+    public List<RutaTentativaDTO> generarRutasConDepositos(CoordenadasDTO dto) {
 
-        double latO = dto.getLatO();
-        double lonO = dto.getLonO();
-        double latD = dto.getLatD();
-        double lonD = dto.getLonD();
+        List<DepositoDTO> depositos = depositoClient.listarDepositos();
 
-        // Punto intermedio: 1km al norte
-        double latVia = latO + 0.009;
-        double lonVia = lonO;
+        List<RutaTentativaDTO> rutas = new ArrayList<>();
 
-        // === Consultas OSRM ===
-        var tramo1 = osrmClient.obtenerRuta(latO, lonO, latVia, lonVia);
-        var tramo2 = osrmClient.obtenerRuta(latVia, lonVia, latD, lonD);
+        for (DepositoDTO dep : depositos) {
 
-        double distanciaTotal = tramo1.getDistance() + tramo2.getDistance();
-        double duracionTotal  = tramo1.getDuration() + tramo2.getDuration();
+            double latDep = dep.getUbicacion().getLatitud();
+            double lonDep = dep.getUbicacion().getLongitud();
 
-        // === Crear Ruta ===
-        Ruta ruta = new Ruta();
-        ruta.setCantidadTramos(2);
-        ruta.setCantidadDepositos(0);
-        ruta.setDuracionEstimada((int) duracionTotal);
-        ruta = rutaRepository.save(ruta);
+            // === OSRM: origen → depósito
+            var tramo1 = osrmClient.obtenerRuta(
+                    dto.getLatO(), dto.getLonO(),
+                    latDep, lonDep
+            );
 
-        // === Crear Tramo 1 : Origen → Via Norte ===
-        Tramo t1 = new Tramo();
-        t1.setRuta(ruta);
-        t1.setLatitudOrigen(latO);
-        t1.setLongitudOrigen(lonO);
-        t1.setLatitudDestino(latVia);
-        t1.setLongitudDestino(lonVia);
-        t1.setEstadoTramo(estadoTramoRepository.findByDescripcion("Pendiente").orElseThrow());
-        t1.setTipoTramo(tipoTramoRepository.findById(1L).orElseThrow());
-        tramoRepository.save(t1);
+            // === OSRM: depósito → destino
+            var tramo2 = osrmClient.obtenerRuta(
+                    latDep, lonDep,
+                    dto.getLatD(), dto.getLonD()
+            );
 
-        // === Crear Tramo 2 : Via Norte → Destino ===
-        Tramo t2 = new Tramo();
-        t2.setRuta(ruta);
-        t2.setLatitudOrigen(latVia);
-        t2.setLongitudOrigen(lonVia);
-        t2.setLatitudDestino(latD);
-        t2.setLongitudDestino(lonD);
-        t2.setEstadoTramo(estadoTramoRepository.findByDescripcion("Pendiente").orElseThrow());
-        t2.setTipoTramo(tipoTramoRepository.findById(1L).orElseThrow());
-        tramoRepository.save(t2);
+            double distanciaTotal = tramo1.getDistance() + tramo2.getDistance();
+            double duracionTotal = tramo1.getDuration() + tramo2.getDuration();
 
-        // === Devolver DTO ===
-        RutaTentativaDTO resp = new RutaTentativaDTO();
-        resp.setIdRuta(ruta.getId());
-        resp.setDistancia(distanciaTotal);
-        resp.setDuracion(duracionTotal);
-        resp.setDescripcion("Ruta alternativa por el norte");
+            // === Crear Ruta ===
+            Ruta ruta = new Ruta();
+            ruta.setCantidadTramos(2);
+            ruta.setCantidadDepositos(1);
+            ruta.setDuracionEstimada((int) duracionTotal);
+            ruta = rutaRepository.save(ruta);
 
-        return resp;
+            // === Crear tramo 1: origen → depósito
+            Tramo t1 = new Tramo();
+            t1.setRuta(ruta);
+            t1.setLatitudOrigen(dto.getLatO());
+            t1.setLongitudOrigen(dto.getLonO());
+            t1.setLatitudDestino(latDep);
+            t1.setLongitudDestino(lonDep);
+            t1.setEstadoTramo(estadoTramoRepository.findByDescripcion("Pendiente").orElseThrow());
+            t1.setTipoTramo(tipoTramoRepository.findByDescripcion("origen-deposito").orElseThrow());
+            tramoRepository.save(t1);
+
+            // === Crear tramo 2: depósito → destino
+            Tramo t2 = new Tramo();
+            t2.setRuta(ruta);
+            t2.setLatitudOrigen(latDep);
+            t2.setLongitudOrigen(lonDep);
+            t2.setLatitudDestino(dto.getLatD());
+            t2.setLongitudDestino(dto.getLonD());
+            t2.setEstadoTramo(estadoTramoRepository.findByDescripcion("Pendiente").orElseThrow());
+            t2.setTipoTramo(tipoTramoRepository.findByDescripcion("deposito-destino").orElseThrow());
+            tramoRepository.save(t2);
+
+            // === Crear el DTO de respuesta ===
+            RutaTentativaDTO r = new RutaTentativaDTO();
+            r.setIdRuta(ruta.getId());
+            r.setDistancia(distanciaTotal);
+            r.setDuracion(duracionTotal);
+            r.setDescripcion("Ruta pasando por depósito: " + dep.getNombre());
+
+            rutas.add(r);
+        }
+
+        return rutas;
     }
 
-    public RutaTentativaDTO generarRutaEste(CoordenadasDTO dto) {
+    public List<RutaTentativaDTO> generarTodasLasRutas(CoordenadasDTO dto) {
 
-        double latO = dto.getLatO();
-        double lonO = dto.getLonO();
-        double latD = dto.getLatD();
-        double lonD = dto.getLonD();
+        List<RutaTentativaDTO> resultados = new ArrayList<>();
 
-        // Punto intermedio: 1km al este
-        double latVia = latO;
-        double lonVia = lonO + 0.009;
+        // 1) Ruta directa
+        RutaTentativaDTO directa = generarRutaDirecta(dto);
+        resultados.add(directa);
 
-        // === OSRM ===
-        var tramo1 = osrmClient.obtenerRuta(latO, lonO, latVia, lonVia);
-        var tramo2 = osrmClient.obtenerRuta(latVia, lonVia, latD, lonD);
+        // 2) Rutas pasando por depósitos
+        List<RutaTentativaDTO> conDepositos = generarRutasConDepositos(dto);
+        resultados.addAll(conDepositos);
 
-        double distanciaTotal = tramo1.getDistance() + tramo2.getDistance();
-        double duracionTotal  = tramo1.getDuration() + tramo2.getDuration();
-
-        // === Crear Ruta ===
-        Ruta ruta = new Ruta();
-        ruta.setCantidadTramos(2);
-        ruta.setCantidadDepositos(0);
-        ruta.setDuracionEstimada((int) duracionTotal);
-        ruta = rutaRepository.save(ruta);
-
-        // === Tramo 1 ===
-        Tramo t1 = new Tramo();
-        t1.setRuta(ruta);
-        t1.setLatitudOrigen(latO);
-        t1.setLongitudOrigen(lonO);
-        t1.setLatitudDestino(latVia);
-        t1.setLongitudDestino(lonVia);
-        t1.setEstadoTramo(estadoTramoRepository.findByDescripcion("Pendiente").orElseThrow());
-        t1.setTipoTramo(tipoTramoRepository.findById(1L).orElseThrow());
-        tramoRepository.save(t1);
-
-        // === Tramo 2 ===
-        Tramo t2 = new Tramo();
-        t2.setRuta(ruta);
-        t2.setLatitudOrigen(latVia);
-        t2.setLongitudOrigen(lonVia);
-        t2.setLatitudDestino(latD);
-        t2.setLongitudDestino(lonD);
-        t2.setEstadoTramo(estadoTramoRepository.findByDescripcion("Pendiente").orElseThrow());
-        t2.setTipoTramo(tipoTramoRepository.findById(1L).orElseThrow());
-        tramoRepository.save(t2);
-
-        // === DTO ===
-        RutaTentativaDTO resp = new RutaTentativaDTO();
-        resp.setIdRuta(ruta.getId());
-        resp.setDistancia(distanciaTotal);
-        resp.setDuracion(duracionTotal);
-        resp.setDescripcion("Ruta alternativa por el este");
-
-        return resp;
+        return resultados;
     }
-
 
 }
