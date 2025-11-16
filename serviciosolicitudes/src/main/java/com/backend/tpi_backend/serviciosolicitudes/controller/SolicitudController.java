@@ -61,66 +61,82 @@ public class SolicitudController {
     }
 
     @GetMapping("/{id}/tracking")
-public ResponseEntity<SolicitudResponseDTO> tracking(@PathVariable Long id) {
-    return service.findById(id)
-            .map(s -> {
-                SolicitudResponseDTO dto = new SolicitudResponseDTO();
-                dto.setIdSolicitud(s.getId());
-                dto.setIdCliente(s.getIdCliente());
-                dto.setIdContenedor(s.getIdContenedor());
-                dto.setLatitudOrigen(s.getLatitudOrigen());
-                dto.setLongitudOrigen(s.getLongitudOrigen());
-                dto.setLatitudDestino(s.getLatitudDestino());
-                dto.setLongitudDestino(s.getLongitudDestino());
+    public ResponseEntity<SolicitudResponseDTO> tracking(@PathVariable Long id) {
+        return service.findById(id)
+                .map(s -> {
+                    SolicitudResponseDTO dto = new SolicitudResponseDTO();
+                    dto.setIdSolicitud(s.getId());
+                    dto.setIdCliente(s.getIdCliente());
+                    dto.setIdContenedor(s.getIdContenedor());
+                    dto.setLatitudOrigen(s.getLatitudOrigen());
+                    dto.setLongitudOrigen(s.getLongitudOrigen());
+                    dto.setLatitudDestino(s.getLatitudDestino());
+                    dto.setLongitudDestino(s.getLongitudDestino());
 
-                dto.setCostoEstimado(
-                        s.getCostoEstimado() != null ? s.getCostoEstimado().doubleValue() : null
-                );
-                dto.setTiempoEstimado(
-                        s.getTiempoEstimado() != null ? s.getTiempoEstimado().doubleValue() : null
-                );
+                    dto.setCostoEstimado(
+                            s.getCostoEstimado() != null ? s.getCostoEstimado().doubleValue() : null
+                    );
+                    dto.setTiempoEstimado(
+                            s.getTiempoEstimado() != null ? s.getTiempoEstimado().doubleValue() : null
+                    );
 
-                dto.setEstadoSolicitud(
-                        s.getEstado() != null ? s.getEstado().getDescripcion() : null
-                );
+                    dto.setEstadoSolicitud(
+                            s.getEstado() != null ? s.getEstado().getDescripcion() : null
+                    );
 
-                return ResponseEntity.ok(dto);
-            })
-            .orElse(ResponseEntity.notFound().build());
-}
-    // 🔹 Consultar solicitudes pendientes de entrega con filtros
-@GetMapping("/pendientes")
-public List<SolicitudResponseDTO> listarPendientes(
-        @RequestParam(required = false) String estado,
-        @RequestParam(required = false) Long idCliente,
-        @RequestParam(required = false) Long idContenedor) {
+                    return ResponseEntity.ok(dto);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+        // 🔹 Consultar solicitudes pendientes de entrega con filtros
+    @GetMapping("/pendientes")
+    public List<SolicitudResponseDTO> listarPendientes(
+            @RequestParam(required = false) String estado,
+            @RequestParam(required = false) Long idCliente,
+            @RequestParam(required = false) Long idContenedor) {
 
-    return service.buscarPendientes(estado, idCliente, idContenedor)
-            .stream()
-            .map(s -> {
-                SolicitudResponseDTO dto = new SolicitudResponseDTO();
-                dto.setIdSolicitud(s.getId());
-                dto.setIdCliente(s.getIdCliente());
-                dto.setIdContenedor(s.getIdContenedor());
-                dto.setLatitudOrigen(s.getLatitudOrigen());
-                dto.setLongitudOrigen(s.getLongitudOrigen());
-                dto.setLatitudDestino(s.getLatitudDestino());
-                dto.setLongitudDestino(s.getLongitudDestino());
+        return service.buscarPendientes(estado, idCliente, idContenedor)
+                .stream()
+                .map(s -> {
+                    SolicitudResponseDTO dto = new SolicitudResponseDTO();
+                    dto.setIdSolicitud(s.getId());
+                    dto.setIdCliente(s.getIdCliente());
+                    dto.setIdContenedor(s.getIdContenedor());
+                    dto.setLatitudOrigen(s.getLatitudOrigen());
+                    dto.setLongitudOrigen(s.getLongitudOrigen());
+                    dto.setLatitudDestino(s.getLatitudDestino());
+                    dto.setLongitudDestino(s.getLongitudDestino());
 
-                dto.setCostoEstimado(
-                        s.getCostoEstimado() != null ? s.getCostoEstimado().doubleValue() : null
-                );
-                dto.setTiempoEstimado(
-                        s.getTiempoEstimado() != null ? s.getTiempoEstimado().doubleValue() : null
-                );
+                    dto.setCostoEstimado(
+                            s.getCostoEstimado() != null ? s.getCostoEstimado().doubleValue() : null
+                    );
+                    dto.setTiempoEstimado(
+                            s.getTiempoEstimado() != null ? s.getTiempoEstimado().doubleValue() : null
+                    );
 
-                dto.setEstadoSolicitud(
-                        s.getEstado() != null ? s.getEstado().getDescripcion() : null
-                );
+                    dto.setEstadoSolicitud(
+                            s.getEstado() != null ? s.getEstado().getDescripcion() : null
+                    );
 
-                return dto;
-            })
-            .toList();
-}
+                    return dto;
+                })
+                .toList();
+    }
+
+    // 🔹 GENERAR 3 RUTAS TENTATIVAS PARA UNA SOLICITUD
+    @PostMapping("/{id}/rutas-tentativas")
+    public ResponseEntity<?> generarRutasTentativas(@PathVariable Long id) {
+        return ResponseEntity.ok(service.generarRutasTentativas(id));
+    }
+
+    // 🔹 Asignar una ruta (ya creada en serviciorutas) a la solicitud
+    @PutMapping("/{idSolicitud}/asignar-ruta/{idRuta}")
+    public ResponseEntity<SolicitudResponseDTO> asignarRuta(
+            @PathVariable Long idSolicitud,
+            @PathVariable Long idRuta) {
+
+        SolicitudResponseDTO resp = service.asignarRuta(idSolicitud, idRuta);
+        return ResponseEntity.ok(resp);
+    }
 
 }

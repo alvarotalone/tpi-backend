@@ -4,16 +4,20 @@ import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudRequestDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudResponseDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.ClienteDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.ContenedorDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.RutaDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.RutaTentativaDTO;
 import com.backend.tpi_backend.serviciosolicitudes.model.EstadoSolicitud;
 import com.backend.tpi_backend.serviciosolicitudes.model.Solicitud;
 import com.backend.tpi_backend.serviciosolicitudes.repository.EstadoSolicitudRepository;
 import com.backend.tpi_backend.serviciosolicitudes.repository.SolicitudRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -25,6 +29,9 @@ public class SolicitudService {
 
     @Value("${servicio.clientes.url}")
     private String clientesBaseUrl;
+
+    @Value("${servicios.rutas.url}")
+    private String rutasBaseUrl;
 
     public SolicitudService(SolicitudRepository repo,
                             EstadoSolicitudRepository estadoRepo,
@@ -202,29 +209,140 @@ public class SolicitudService {
     }
 
     // 🔹 Solicitudes pendientes de entrega con filtros opcionales
-public List<Solicitud> buscarPendientes(String estado, Long idCliente, Long idContenedor) {
-    List<Solicitud> solicitudes = repo.findAll();
+    public List<Solicitud> buscarPendientes(String estado, Long idCliente, Long idContenedor) {
+        List<Solicitud> solicitudes = repo.findAll();
 
-    return solicitudes.stream()
-            // solo pendientes (no ENTREGADA)
-            .filter(s -> s.getEstado() != null
-                    && s.getEstado().getDescripcion() != null
-                    && !s.getEstado().getDescripcion().equalsIgnoreCase("ENTREGADA"))
-
-            // filtro por estado (opcional)
-            .filter(s -> estado == null
-                    || (s.getEstado() != null
+        return solicitudes.stream()
+                // solo pendientes (no ENTREGADA)
+                .filter(s -> s.getEstado() != null
                         && s.getEstado().getDescripcion() != null
-                        && s.getEstado().getDescripcion().equalsIgnoreCase(estado)))
+                        && !s.getEstado().getDescripcion().equalsIgnoreCase("ENTREGADA"))
 
-            // filtro por cliente (opcional)
-            .filter(s -> idCliente == null
-                    || (s.getIdCliente() != null && s.getIdCliente().equals(idCliente)))
+                // filtro por estado (opcional)
+                .filter(s -> estado == null
+                        || (s.getEstado() != null
+                            && s.getEstado().getDescripcion() != null
+                            && s.getEstado().getDescripcion().equalsIgnoreCase(estado)))
 
-            // filtro por contenedor (opcional)
-            .filter(s -> idContenedor == null
-                    || (s.getIdContenedor() != null && s.getIdContenedor().equals(idContenedor)))
-            .toList();
-}
+                // filtro por cliente (opcional)
+                .filter(s -> idCliente == null
+                        || (s.getIdCliente() != null && s.getIdCliente().equals(idCliente)))
+
+                // filtro por contenedor (opcional)
+                .filter(s -> idContenedor == null
+                        || (s.getIdContenedor() != null && s.getIdContenedor().equals(idContenedor)))
+                .toList();
+    }
+
+    public List<RutaTentativaDTO> generarRutasTentativas(Long idSolicitud) {
+
+        Solicitud solicitud = repo.findById(idSolicitud)
+                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+
+        double latO = solicitud.getLatitudOrigen();
+        double lonO = solicitud.getLongitudOrigen();
+        double latD = solicitud.getLatitudDestino();
+        double lonD = solicitud.getLongitudDestino();
+
+        
+
+        // ### Ruta Directa ###
+        var directa = restTemplate.postForObject(
+                rutasBaseUrl + "/generar-directa",
+                Map.of("latO", latO, "lonO", lonO, "latD", latD, "lonD", lonD),
+                RutaTentativaDTO.class
+        );
+
+        // ### Ruta Norte ###
+        var norte = restTemplate.postForObject(
+                rutasBaseUrl + "/generar-norte",
+                Map.of("latO", latO, "lonO", lonO, "latD", latD, "lonD", lonD),
+                RutaTentativaDTO.class
+        );
+
+        // ### Ruta Este ###
+        var este = restTemplate.postForObject(
+                rutasBaseUrl + "/generar-este",
+                Map.of("latO", latO, "lonO", lonO, "latD", latD, "lonD", lonD),
+                RutaTentativaDTO.class
+        );
+
+        return List.of(directa, norte, este);
+    }
+
+    public SolicitudResponseDTO asignarRuta(Long idSolicitud, Long idRuta) {
+
+        // 1) Buscar la solicitud
+        Solicitud solicitud = repo.findById(idSolicitud)
+                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+
+        // 2) Validar que la ruta exista (pero sin usar este resultado)
+        try {
+            restTemplate.getForObject(
+                    rutasBaseUrl + "/" + idRuta,
+                    Object.class
+            );
+        } catch (HttpClientErrorException.NotFound e) {
+            throw new RuntimeException("La ruta indicada no existe en serviciorutas");
+        }
+
+        // 👉👉 **OBTENER LA RUTA**
+        RutaDTO ruta = restTemplate.getForObject(
+                rutasBaseUrl + "/" + idRuta,
+                RutaDTO.class
+        );
+
+        if (ruta == null) {
+            throw new RuntimeException("No se pudo obtener la ruta desde serviciorutas");
+        }
+
+        // 3) Validar transición de estado
+        EstadoSolicitud estadoActual = solicitud.getEstado();
+        Long idEstadoActual = (estadoActual != null) ? estadoActual.getId() : null;
+
+        EstadoSolicitud estadoProgramada = estadoRepo.findByDescripcion("PROGRAMADA")
+                .orElseThrow(() -> new RuntimeException("No existe estado PROGRAMADA"));
+
+        Long idEstadoProgramada = estadoProgramada.getId();
+
+        if (!esTransicionValida(idEstadoActual, idEstadoProgramada)) {
+            throw new RuntimeException(
+                    "No se puede asignar ruta: transición de estado no permitida"
+            );
+        }
+
+        // 4) Asignar datos
+        solicitud.setIdRuta(idRuta);
+        solicitud.setEstado(estadoProgramada);
+
+        // 👉👉 **Ahora sí podés usar la duración**
+        solicitud.setTiempoEstimado(ruta.getDuracion());
+
+        solicitud = repo.save(solicitud);
+
+        // 5) DTO respuesta
+        SolicitudResponseDTO resp = new SolicitudResponseDTO();
+        resp.setIdSolicitud(solicitud.getId());
+        resp.setIdCliente(solicitud.getIdCliente());
+        resp.setIdContenedor(solicitud.getIdContenedor());
+        resp.setLatitudOrigen(solicitud.getLatitudOrigen());
+        resp.setLongitudOrigen(solicitud.getLongitudOrigen());
+        resp.setLatitudDestino(solicitud.getLatitudDestino());
+        resp.setLongitudDestino(solicitud.getLongitudDestino());
+
+        resp.setCostoEstimado(
+                solicitud.getCostoEstimado() != null ? solicitud.getCostoEstimado().doubleValue() : null
+        );
+
+        resp.setTiempoEstimado(
+                solicitud.getTiempoEstimado() != null ? solicitud.getTiempoEstimado().doubleValue() : null
+        );
+
+        resp.setEstadoSolicitud(
+                solicitud.getEstado() != null ? solicitud.getEstado().getDescripcion() : null
+        );
+
+        return resp;
+    }
 
 }

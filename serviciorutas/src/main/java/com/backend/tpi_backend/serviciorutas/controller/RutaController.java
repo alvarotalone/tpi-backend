@@ -5,6 +5,8 @@ import com.backend.tpi_backend.serviciorutas.model.Ruta;
 import com.backend.tpi_backend.serviciorutas.model.Tramo;
 import com.backend.tpi_backend.serviciorutas.service.RutaService;
 import com.backend.tpi_backend.serviciorutas.service.TramoService;
+import com.backend.tpi_backend.serviciorutas.dto.CoordenadasDTO;
+import com.backend.tpi_backend.serviciorutas.dto.RutaTentativaDTO;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -116,7 +118,22 @@ public class RutaController {
     @GetMapping("/{idRuta}/distancia")
     public ResponseEntity<Double> obtenerDistanciaRuta(@PathVariable Long idRuta) {
         double distancia = rutaService.calcularDistanciaTotalRuta(idRuta);
-        return ResponseEntity.ok(distancia / 1000.0);   // en metros
+        return ResponseEntity.ok(distancia / 1000.0);   // en km
+    }
+
+    @PostMapping("/generar-directa")
+    public ResponseEntity<RutaTentativaDTO> generarDirecta(@RequestBody CoordenadasDTO dto) {
+        return ResponseEntity.ok(rutaService.generarRutaDirecta(dto));
+    }
+
+    @PostMapping("/generar-norte")
+    public ResponseEntity<RutaTentativaDTO> generarNorte(@RequestBody CoordenadasDTO dto) {
+        return ResponseEntity.ok(rutaService.generarRutaNorte(dto));
+    }
+
+    @PostMapping("/generar-este")
+    public ResponseEntity<RutaTentativaDTO> generarEste(@RequestBody CoordenadasDTO dto) {
+        return ResponseEntity.ok(rutaService.generarRutaEste(dto));
     }
 
 }
