@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: api-gateway
+  
+  # --- 1. TU CONFIGURACIÓN DE RUTAS (EXISTENTE) ---
   cloud:
     gateway:
       routes:
@@ -61,6 +63,18 @@ spring:
           filters:
             - RewritePath=/api/(?<segment>.*), /$\{segment}
 
+  # --- 2. SECCIÓN DE SEGURIDAD (AGREGADA) ---
+  # Esta es la configuración oficial de Spring Security
+  # Le dice al "Guardia" (Resource Server) dónde validar los tokens (JWT).
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Le dice dónde está la "oficina" de Keycloak (8090)
+          issuer-uri: http://localhost:8090/realms/tpi-backend
+
+# --- 3. TU CONFIGURACIÓN PERSONALIZADA (EXISTENTE) ---
+# (Esta la usa tu KeycloakCallbackController)
 keycloak:
   server-url: http://localhost:8090
   realm: tpi-backend
