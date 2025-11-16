@@ -1,8 +1,9 @@
 package com.backend.tpi_backend.serviciorutas.service;
 
-import com.backend.tpi_backend.serviciorutas.dto.CamionDTO;
+
 import com.backend.tpi_backend.serviciorutas.dto.CoordenadasDTO;
 import com.backend.tpi_backend.serviciorutas.dto.DepositoDTO;
+import com.backend.tpi_backend.serviciorutas.dto.RutaPosicionDTO;
 import com.backend.tpi_backend.serviciorutas.model.Ruta;
 import com.backend.tpi_backend.serviciorutas.model.Tramo;
 import com.backend.tpi_backend.serviciorutas.repository.EstadoTramoRepository;
@@ -17,6 +18,7 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -187,7 +189,7 @@ public class RutaService {
      *  8. Asigna dominio a cada tramo
     
     public Ruta asignarCamionARuta(Long idRuta, String dominioCamion,
-                                   double pesoContenedor, double volumenContenedor) {
+                                double pesoContenedor, double volumenContenedor) {
 
         Ruta ruta = getById(idRuta);
 
@@ -396,4 +398,46 @@ public class RutaService {
         return resultados;
     }
 
+    //==== Obtener ultimo tramo recorrido de la ruta  ====
+    public List<RutaPosicionDTO> obtenerUltimaPosicionRutas(List<Long> idsRuta) {
+        if (idsRuta == null || idsRuta.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<RutaPosicionDTO> resultado = new ArrayList<>();
+
+        for (Long idRuta : idsRuta) {
+
+            // todos los tramos de esa ruta
+            List<Tramo> tramos = tramoRepository.findByRuta_Id(idRuta);
+
+            if (tramos.isEmpty()) {
+                // si querés ignorar rutas sin tramos, podés hacer simplemente "continue;"
+                throw new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "No hay tramos para la ruta " + idRuta
+                );
+            }
+
+            // tramo con fh_fin_real más grande
+            Tramo ultimoTramo = tramos.stream()
+                    .filter(t -> t.getFhFinReal() != null)
+                    .max(Comparator.comparing(Tramo::getFhFinReal))
+                    .orElse(null);
+
+            if (ultimoTramo == null) {
+                // no hay ningún tramo con fh_fin_real cargada → la salteamos
+                continue;
+            }
+
+            RutaPosicionDTO dto = new RutaPosicionDTO();
+            dto.setIdRuta(idRuta);
+            dto.setLatitudDestino(ultimoTramo.getLatitudDestino());
+            dto.setLongitudDestino(ultimoTramo.getLongitudDestino());
+
+            resultado.add(dto);
+        }
+
+        return resultado;
+    }
 }

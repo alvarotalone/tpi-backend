@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.*;
 
 @Service
 public class ContenedorService {
@@ -41,5 +42,19 @@ public class ContenedorService {
             return contenedorRepository.save(c);
         }
         return null;
+    }
+
+    //=== Contenedores en estado EN_TRANSITO ===
+    public List<Long> filtrarContenedoresEnTransito(List<Long> idsContenedor) {
+        if (idsContenedor == null || idsContenedor.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Contenedor> contenedores = contenedorRepository
+                .findByIdInAndEstado_Descripcion(idsContenedor, "EN_TRANSITO");
+
+        return contenedores.stream()
+                .map(Contenedor::getId)
+                .toList();
     }
 }

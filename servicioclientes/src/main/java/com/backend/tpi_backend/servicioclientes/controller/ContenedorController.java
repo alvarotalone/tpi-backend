@@ -56,4 +56,12 @@ public class ContenedorController {
     public void eliminar(@PathVariable Long id) {
         contenedorService.delete(id);
     }
+
+    //=== Contenedores en estado EN_TRANSITO ===
+    @PostMapping("/validar-en-transito")
+    public ResponseEntity<List<Long>> validarEnTransito(@RequestBody List<Long> idsContenedor) {
+        List<Long> idsValidos = contenedorService.filtrarContenedoresEnTransito(idsContenedor);
+        return ResponseEntity.ok(idsValidos);
+    }
+
 }

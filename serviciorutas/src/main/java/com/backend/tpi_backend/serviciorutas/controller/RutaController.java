@@ -6,6 +6,7 @@ import com.backend.tpi_backend.serviciorutas.model.Tramo;
 import com.backend.tpi_backend.serviciorutas.service.RutaService;
 import com.backend.tpi_backend.serviciorutas.service.TramoService;
 import com.backend.tpi_backend.serviciorutas.dto.CoordenadasDTO;
+import com.backend.tpi_backend.serviciorutas.dto.RutaPosicionDTO;
 import com.backend.tpi_backend.serviciorutas.dto.RutaTentativaDTO;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -88,7 +89,7 @@ public class RutaController {
 
     @PutMapping("/{idRuta}/asignar-camion")
     public ResponseEntity<Void> asignarCamion(
-            @PathVariable Long idRuta,
+            @PathVariable(name="idRuta", required = true) Long idRuta,
             @RequestBody AsignarCamionRequest request) {
 
         rutaService.asignarCamionARuta(
@@ -113,8 +114,18 @@ public class RutaController {
     }
     */
 
-   @PostMapping("/tentativas")
+    @PostMapping("/tentativas")
     public ResponseEntity<List<RutaTentativaDTO>> generarTentativas(@RequestBody CoordenadasDTO dto) {
         return ResponseEntity.ok(rutaService.generarTodasLasRutas(dto));
+    }
+
+    //=== Obtener ultimo tramo recorrido en la ruta ===
+    @PostMapping("/ultima-posicion")
+    public ResponseEntity<List<RutaPosicionDTO>> obtenerUltimaPosicion(
+            @RequestBody List<Long> idsRuta) {
+
+        return ResponseEntity.ok(
+                rutaService.obtenerUltimaPosicionRutas(idsRuta)
+        );
     }
 }

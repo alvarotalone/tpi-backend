@@ -54,7 +54,7 @@ public class TramoController {
     }
 
     @PutMapping("/{id}/finalizar")
-    public ResponseEntity<String> finalizarTramo(@PathVariable Long id) {
+    public ResponseEntity<String> finalizarTramo(@PathVariable(name="id", required = true) Long id) {
         tramoService.finalizarTramo(id);
         return ResponseEntity.ok("Tramo finalizado correctamente");
     }

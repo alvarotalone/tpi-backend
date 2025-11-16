@@ -1,12 +1,15 @@
 package com.backend.tpi_backend.serviciosolicitudes.service;
 
+
 import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudRequestDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudResponseDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.TramoDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.CamionDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.ClienteDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.ContenedorDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.ContenedorUbicacionDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.RutaDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.RutaPosicionDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.RutaTentativaDTO;
 import com.backend.tpi_backend.serviciosolicitudes.model.EstadoSolicitud;
 import com.backend.tpi_backend.serviciosolicitudes.model.Solicitud;
@@ -19,83 +22,81 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 public class SolicitudService {
 
-    private final SolicitudRepository repo;
-    private final EstadoSolicitudRepository estadoRepo;
-    private final RestTemplate restTemplate;
+        private final SolicitudRepository repo;
+        private final EstadoSolicitudRepository estadoRepo;
+        private final RestTemplate restTemplate;
 
-    @Value("${servicio.clientes.url}")
-    private String clientesBaseUrl;
+        @Value("${servicio.clientes.url}")
+        private String clientesBaseUrl;
 
-    @Value("${servicios.rutas.url}")
-    private String rutasBaseUrl;
+        @Value("${servicios.rutas.url}")
+        private String rutasBaseUrl;
 
-    @Value("${servicio.camiones.url}")
-    private String camionesBaseUrl;
+        @Value("${servicio.camiones.url}")
+        private String camionesBaseUrl;
 
-    public SolicitudService(SolicitudRepository repo,
-                            EstadoSolicitudRepository estadoRepo,
-                            RestTemplate restTemplate) {
+        public SolicitudService(SolicitudRepository repo,
+                        EstadoSolicitudRepository estadoRepo,
+                        RestTemplate restTemplate) {
         this.repo = repo;
         this.estadoRepo = estadoRepo;
         this.restTemplate = restTemplate;
-    }
+        }
 
     // 🔹 Listar todas las solicitudes
-    public List<Solicitud> findAll() {
+        public List<Solicitud> findAll() {
         return repo.findAll();
-    }
+        }
 
     // 🔹 Buscar solicitud por ID
-    public Optional<Solicitud> findById(Long id) {
+        public Optional<Solicitud> findById(Long id) {
         return repo.findById(id);
-    }
+        }
 
     // 🔹 Guardar una nueva solicitud (versión vieja, usando entidad directa)
-    public Solicitud save(Solicitud solicitud) {
+        public Solicitud save(Solicitud solicitud) {
         return repo.save(solicitud);
-    }
+        }
 
     // 🔹 Eliminar una solicitud por ID
-    public void delete(Long id) {
+        public void delete(Long id) {
         repo.deleteById(id);
-    }
+        }
 
     // 🔹 Actualizar el estado de una solicitud
-    public Solicitud updateEstado(Long id, Long idEstado) {
-    Optional<Solicitud> optSolicitud = repo.findById(id);
-    if (optSolicitud.isEmpty()) return null;
+        public Solicitud updateEstado(Long id, Long idEstado) {
+        Optional<Solicitud> optSolicitud = repo.findById(id);
+        if (optSolicitud.isEmpty()) return null;
 
-    Solicitud solicitud = optSolicitud.get();
+        Solicitud solicitud = optSolicitud.get();
 
-    EstadoSolicitud nuevoEstado = estadoRepo.findById(idEstado).orElse(null);
-    if (nuevoEstado == null) return null;
+        EstadoSolicitud nuevoEstado = estadoRepo.findById(idEstado).orElse(null);
+        if (nuevoEstado == null) return null;
 
-    EstadoSolicitud estadoActual = solicitud.getEstado();
-    Long idActual = (estadoActual != null) ? estadoActual.getId() : null;
-    Long idNuevo  = nuevoEstado.getId();
+        EstadoSolicitud estadoActual = solicitud.getEstado();
+        Long idActual = (estadoActual != null) ? estadoActual.getId() : null;
+        Long idNuevo  = nuevoEstado.getId();
 
-    if (!esTransicionValida(idActual, idNuevo)) {
+        if (!esTransicionValida(idActual, idNuevo)) {
         throw new RuntimeException(
                 "Transición de estado no permitida: " + idActual + " -> " + idNuevo
         );
-    }
+        }
 
-    solicitud.setEstado(nuevoEstado);
-    return repo.save(solicitud);
+        solicitud.setEstado(nuevoEstado);
+        return repo.save(solicitud);
 }
 
 
 
-    private boolean esTransicionValida(Long actual, Long nuevo) {
-    if (actual == null || nuevo == null) return false;
+        private boolean esTransicionValida(Long actual, Long nuevo) {
+        if (actual == null || nuevo == null) return false;
 
     return (actual == 1 && nuevo == 2)   // BORRADOR -> PROGRAMADA
         || (actual == 2 && nuevo == 3)   // PROGRAMADA -> EN_TRANSITO
@@ -104,52 +105,52 @@ public class SolicitudService {
 
 
     // 🔹 Nuevo: crear solicitud usando DTO + integración con servicioclientes
-    public SolicitudResponseDTO crearSolicitud(SolicitudRequestDTO dto) {
+        public SolicitudResponseDTO crearSolicitud(SolicitudRequestDTO dto) {
 
         // 1) Determinar / crear cliente
         Long idCliente = dto.getIdCliente();
 
         if (idCliente == null) {
-            ClienteDTO nuevoCliente = new ClienteDTO();
-            nuevoCliente.setNombre(dto.getNombreCliente());
-            nuevoCliente.setApellido(dto.getApellidoCliente());
-            nuevoCliente.setTelefono(dto.getTelefonoCliente());
-            nuevoCliente.setEmail(dto.getEmailCliente());
+                ClienteDTO nuevoCliente = new ClienteDTO();
+                nuevoCliente.setNombre(dto.getNombreCliente());
+                nuevoCliente.setApellido(dto.getApellidoCliente());
+                nuevoCliente.setTelefono(dto.getTelefonoCliente());
+                nuevoCliente.setEmail(dto.getEmailCliente());
 
-            ClienteDTO clienteCreado = restTemplate.postForObject(
-                    clientesBaseUrl + "/clientes",
-                    nuevoCliente,
-                    ClienteDTO.class
-            );
+                ClienteDTO clienteCreado = restTemplate.postForObject(
+                        clientesBaseUrl + "/clientes",
+                        nuevoCliente,
+                        ClienteDTO.class
+                );
 
-            if (clienteCreado == null || clienteCreado.getId() == null) {
+                if (clienteCreado == null || clienteCreado.getId() == null) {
                 throw new RuntimeException("No se pudo crear el cliente en servicioclientes");
-            }
-            idCliente = clienteCreado.getId();
+                }
+                idCliente = clienteCreado.getId();
         }
 
         // 2) Determinar / crear contenedor
         Long idContenedor = dto.getIdContenedor();
 
         if (idContenedor == null) {
-            ContenedorDTO nuevoContenedor = new ContenedorDTO();
-            nuevoContenedor.setPeso(dto.getPesoContenedor());
-            nuevoContenedor.setVolumen(dto.getVolumenContenedor());
+                ContenedorDTO nuevoContenedor = new ContenedorDTO();
+                nuevoContenedor.setPeso(dto.getPesoContenedor());
+                nuevoContenedor.setVolumen(dto.getVolumenContenedor());
 
-            ClienteDTO refCliente = new ClienteDTO();
-            refCliente.setId(idCliente);
-            nuevoContenedor.setCliente(refCliente);
+                ClienteDTO refCliente = new ClienteDTO();
+                refCliente.setId(idCliente);
+                nuevoContenedor.setCliente(refCliente);
 
-            ContenedorDTO contenedorCreado = restTemplate.postForObject(
-                    clientesBaseUrl + "/contenedores",
-                    nuevoContenedor,
-                    ContenedorDTO.class
-            );
+                ContenedorDTO contenedorCreado = restTemplate.postForObject(
+                        clientesBaseUrl + "/contenedores",
+                        nuevoContenedor,
+                        ContenedorDTO.class
+                );
 
-            if (contenedorCreado == null || contenedorCreado.getId() == null) {
+                if (contenedorCreado == null || contenedorCreado.getId() == null) {
                 throw new RuntimeException("No se pudo crear el contenedor en servicioclientes");
-            }
-            idContenedor = contenedorCreado.getId();
+                }
+                idContenedor = contenedorCreado.getId();
         }
 
         // 3) Estado inicial: BORRADOR
@@ -168,15 +169,15 @@ public class SolicitudService {
 
         // La entidad usa BigDecimal e Integer, el DTO usa Double
         if (dto.getCostoEstimado() != null) {
-            s.setCostoEstimado(BigDecimal.valueOf(dto.getCostoEstimado()));
+                s.setCostoEstimado(BigDecimal.valueOf(dto.getCostoEstimado()));
         } else {
-            s.setCostoEstimado(null);
+                s.setCostoEstimado(null);
         }
 
         if (dto.getTiempoEstimado() != null) {
-            s.setTiempoEstimado(dto.getTiempoEstimado().intValue());
+                s.setTiempoEstimado(dto.getTiempoEstimado().intValue());
         } else {
-            s.setTiempoEstimado(null);
+                s.setTiempoEstimado(null);
         }
 
         // campos que no estamos usando ahora
@@ -213,10 +214,10 @@ public class SolicitudService {
         );
 
         return resp;
-    }
+        }
 
     // 🔹 Solicitudes pendientes de entrega con filtros opcionales
-    public List<Solicitud> buscarPendientes(String estado, Long idCliente, Long idContenedor) {
+        public List<Solicitud> buscarPendientes(String estado, Long idCliente, Long idContenedor) {
         List<Solicitud> solicitudes = repo.findAll();
 
         return solicitudes.stream()
@@ -228,8 +229,8 @@ public class SolicitudService {
                 // filtro por estado (opcional)
                 .filter(s -> estado == null
                         || (s.getEstado() != null
-                            && s.getEstado().getDescripcion() != null
-                            && s.getEstado().getDescripcion().equalsIgnoreCase(estado)))
+                                && s.getEstado().getDescripcion() != null
+                                && s.getEstado().getDescripcion().equalsIgnoreCase(estado)))
 
                 // filtro por cliente (opcional)
                 .filter(s -> idCliente == null
@@ -239,9 +240,9 @@ public class SolicitudService {
                 .filter(s -> idContenedor == null
                         || (s.getIdContenedor() != null && s.getIdContenedor().equals(idContenedor)))
                 .toList();
-    }
+        }
 
-    public List<RutaTentativaDTO> generarRutasTentativas(Long idSolicitud) {
+        public List<RutaTentativaDTO> generarRutasTentativas(Long idSolicitud) {
 
         Solicitud solicitud = repo.findById(idSolicitud)
                 .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
@@ -275,9 +276,9 @@ public class SolicitudService {
         );
 
         return List.of(directa, norte, este);
-    }
+        }
 
-    public SolicitudResponseDTO asignarRuta(Long idSolicitud, Long idRuta) {
+        public SolicitudResponseDTO asignarRuta(Long idSolicitud, Long idRuta) {
 
         // 1) Buscar la solicitud
         Solicitud solicitud = repo.findById(idSolicitud)
@@ -285,12 +286,12 @@ public class SolicitudService {
 
         // 2) Validar que la ruta exista (pero sin usar este resultado)
         try {
-            restTemplate.getForObject(
-                    rutasBaseUrl + "/rutas/" + idRuta,
-                    Object.class
-            );
+                restTemplate.getForObject(
+                        rutasBaseUrl + "/rutas/" + idRuta,
+                        Object.class
+                );
         } catch (HttpClientErrorException.NotFound e) {
-            throw new RuntimeException("La ruta indicada no existe en serviciorutas");
+                throw new RuntimeException("La ruta indicada no existe en serviciorutas");
         }
 
         // 👉👉 **OBTENER LA RUTA**
@@ -300,7 +301,7 @@ public class SolicitudService {
         );
 
         if (ruta == null) {
-            throw new RuntimeException("No se pudo obtener la ruta desde serviciorutas");
+                throw new RuntimeException("No se pudo obtener la ruta desde serviciorutas");
         }
 
         // 3) Validar transición de estado
@@ -313,9 +314,9 @@ public class SolicitudService {
         Long idEstadoProgramada = estadoProgramada.getId();
 
         if (!esTransicionValida(idEstadoActual, idEstadoProgramada)) {
-            throw new RuntimeException(
-                    "No se puede asignar ruta: transición de estado no permitida"
-            );
+                throw new RuntimeException(
+                        "No se puede asignar ruta: transición de estado no permitida"
+                );
         }
 
         // 4) Asignar datos
@@ -328,16 +329,16 @@ public class SolicitudService {
         solicitud = repo.save(solicitud);
 
         return mapToDTO(solicitud);
-    }
+        }
 
-    public SolicitudResponseDTO asignarCamion(Long idSolicitud, String dominioCamion) {
+        public SolicitudResponseDTO asignarCamion(Long idSolicitud, String dominioCamion) {
 
         // 1️⃣ Buscar solicitud
         Solicitud solicitud = repo.findById(idSolicitud)
                 .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
 
         if (solicitud.getIdRuta() == null) {
-            throw new RuntimeException("La solicitud no tiene una ruta asignada");
+                throw new RuntimeException("La solicitud no tiene una ruta asignada");
         }
 
         Long idRuta = solicitud.getIdRuta();
@@ -350,7 +351,7 @@ public class SolicitudService {
         );
 
         if (cont == null) {
-            throw new RuntimeException("No se pudo obtener el contenedor desde servicioclientes");
+                throw new RuntimeException("No se pudo obtener el contenedor desde servicioclientes");
         }
 
         double peso = cont.getPeso();
@@ -364,7 +365,7 @@ public class SolicitudService {
         );
 
         if (ruta == null) {
-            throw new RuntimeException("Ruta no encontrada en serviciorutas");
+                throw new RuntimeException("Ruta no encontrada en serviciorutas");
         }
 
 
@@ -375,7 +376,7 @@ public class SolicitudService {
         );
 
         if (tramos == null || tramos.length == 0) {
-            throw new RuntimeException("La ruta no tiene tramos");
+                throw new RuntimeException("La ruta no tiene tramos");
         }
 
 
@@ -392,7 +393,7 @@ public class SolicitudService {
         );
 
         if (!Boolean.TRUE.equals(puedeLlevar)) {
-            throw new RuntimeException("El camión no puede transportar el contenedor");
+                throw new RuntimeException("El camión no puede transportar el contenedor");
         }
 
 
@@ -409,7 +410,7 @@ public class SolicitudService {
                 .anyMatch(c -> c.getDominio().equals(dominioCamion));
 
         if (!disponible) {
-            throw new RuntimeException("El camión no está disponible en ese rango de fechas");
+                throw new RuntimeException("El camión no está disponible en ese rango de fechas");
         }
 
 
@@ -448,16 +449,16 @@ public class SolicitudService {
 
         // 1️⃣2️⃣ Devolver DTO
         return mapToDTO(solicitud);
-    }
+        }
 
 
 
-    private void rutaServiceAsignarCamion(Long idRuta, String dominio, double peso, double volumen) {
+        private void rutaServiceAsignarCamion(Long idRuta, String dominio, double peso, double volumen) {
 
         var body = Map.of(
-            "dominioCamion", dominio,
-            "peso", peso,
-            "volumen", volumen
+                "dominioCamion", dominio,
+                "peso", peso,
+                "volumen", volumen
         );
 
         restTemplate.postForObject(
@@ -465,9 +466,9 @@ public class SolicitudService {
                 body,
                 Void.class
         );
-    }
+        }
 
-    private SolicitudResponseDTO mapToDTO(Solicitud s) {
+        private SolicitudResponseDTO mapToDTO(Solicitud s) {
         SolicitudResponseDTO dto = new SolicitudResponseDTO();
 
         dto.setIdSolicitud(s.getId());
@@ -491,6 +492,101 @@ public class SolicitudService {
         );
 
         return dto;
-    }
+        }
+
+
+        //== Buscar contenedores ===
+        public List<ContenedorUbicacionDTO> obtenerUbicacionesContenedoresEnTransito() {
+
+        // 1) Solicitudes en estado EN_TRANSITO (usa estado.descripcion)
+        List<Solicitud> solicitudesEnTransito =
+                repo.findByEstado_Descripcion("EN_TRANSITO");
+
+        if (solicitudesEnTransito.isEmpty()) {
+                return Collections.emptyList();
+        }
+
+        // Map: idContenedor -> idRuta (usando tus campos idContenedor e idRuta)
+        Map<Long, Long> contenedorRuta = solicitudesEnTransito.stream()
+                .filter(s -> s.getIdContenedor() != null && s.getIdRuta() != null)
+                .collect(Collectors.toMap(
+                        Solicitud::getIdContenedor,
+                        Solicitud::getIdRuta,
+                        (existing, replacement) -> existing // por si se repite
+                ));
+
+        if (contenedorRuta.isEmpty()) {
+                return Collections.emptyList();
+        }
+
+        List<Long> contenedorIds = new ArrayList<>(contenedorRuta.keySet());
+
+        // 2) Llamar a servicioclientes para filtrar solo los contenedores EN_TRANSITO
+        String urlValidarContenedores = clientesBaseUrl + "/contenedores/validar-en-transito";
+
+        Long[] respuestaIds = restTemplate.postForObject(
+                urlValidarContenedores,
+                contenedorIds,
+                Long[].class
+        );
+
+        List<Long> contenedoresValidos = (respuestaIds != null)
+                ? Arrays.asList(respuestaIds)
+                : Collections.emptyList();
+
+        if (contenedoresValidos.isEmpty()) {
+                return Collections.emptyList();
+        }
+
+        // Filtrar solo los pares contenedor-ruta que sigan en tránsito
+        Map<Long, Long> contenedorRutaValidos = contenedorRuta.entrySet().stream()
+                .filter(e -> contenedoresValidos.contains(e.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        if (contenedorRutaValidos.isEmpty()) {
+                return Collections.emptyList();
+        }
+
+        // 3) Pedir a serviciorutas la última posición de cada ruta
+        List<Long> rutaIds = contenedorRutaValidos.values().stream()
+                .distinct()
+                .toList();
+
+        String urlUltimaPosicion = rutasBaseUrl + "/rutas/ultima-posicion";
+
+        RutaPosicionDTO[] rutasArray = restTemplate.postForObject(
+                urlUltimaPosicion,
+                rutaIds,
+                RutaPosicionDTO[].class
+        );
+
+        List<RutaPosicionDTO> rutasInfo = (rutasArray != null)
+                ? Arrays.asList(rutasArray)
+                : Collections.emptyList();
+
+        if (rutasInfo.isEmpty()) {
+                return Collections.emptyList();
+        }
+
+        Map<Long, RutaPosicionDTO> rutaPosicionMap = rutasInfo.stream()
+                .collect(Collectors.toMap(RutaPosicionDTO::getIdRuta, r -> r));
+
+        // 4) Armar la colección final contenedor + ruta + coords
+        return contenedorRutaValidos.entrySet().stream()
+                .map(e -> {
+                        Long idContenedor = e.getKey();
+                        Long idRuta = e.getValue();
+                        RutaPosicionDTO pos = rutaPosicionMap.get(idRuta);
+                        if (pos == null) return null; // ruta sin posición → se descarta
+                        return new ContenedorUbicacionDTO(
+                                idContenedor,
+                                idRuta,
+                                pos.getLatitudDestino(),
+                                pos.getLongitudDestino()
+                        );
+                })
+                .filter(Objects::nonNull)
+                .toList();
+        }
 
 }
