@@ -23,8 +23,7 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      # Mapeamos tu carpeta local 'osrm-data' a la carpeta '/data' del contenedor
-      - ./osrm-data:/data
+      - /c/osrm-data:/data
     # El comando para arrancar (¡OJO! El nombre del archivo .osrm debe coincidir con el que copiaste)
     command: osrm-routed /data/argentina-latest.osrm
     restart: always
