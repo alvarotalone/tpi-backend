@@ -42,7 +42,8 @@ public class SecurityConfig {
 
                 // --- REGLAS ROL: CLIENTE ---
                 .pathMatchers(HttpMethod.POST, "/api/solicitudes").hasRole("CLIENTE")
-                .pathMatchers(HttpMethod.GET, "/api/solicitudes/*/seguimiento").hasRole("CLIENTE")
+                .pathMatchers(HttpMethod.GET, "/api/solicitudes/*/tracking").hasRole("CLIENTE")
+                .pathMatchers(HttpMethod.GET, "/api/solicitudes/*/costo-estimado").hasRole("CLIENTE")
 
                 // --- REGLAS ROL: TRANSPORTISTA ---
                 .pathMatchers(HttpMethod.PUT, "/api/tramos/*/iniciar").hasRole("TRANSPORTISTA")
@@ -60,7 +61,8 @@ public class SecurityConfig {
                 .pathMatchers("/api/usuarios/**").hasRole("ADMIN")
                 .pathMatchers("/api/rutas/**").hasAnyRole("ADMIN","OPERADOR")
                 .pathMatchers(HttpMethod.PUT, "/api/solicitudes/**/estado").hasAnyRole("ADMIN","OPERADOR")
-                .pathMatchers(HttpMethod.GET, "/api/solicitudes").hasAnyRole("ADMIN","OPERADOR")
+                .pathMatchers(HttpMethod.GET, "/api/solicitudes").hasAnyRole("ADMIN","OPERADOR") 
+                .pathMatchers(HttpMethod.PUT, "/api/solicitudes/*/asignar-camion/*").hasAnyRole("ADMIN","OPERADOR")
 
                 // --- REGLAS COMPARTIDAS (Cualquier rol logueado) ---
                 .pathMatchers(HttpMethod.GET, "/api/solicitudes/*/precio-estimado").authenticated()
