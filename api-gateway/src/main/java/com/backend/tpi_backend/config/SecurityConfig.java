@@ -33,10 +33,10 @@ public class SecurityConfig {
 
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
-        
+
         http
             .authorizeExchange(exchanges -> exchanges
-                
+
                 // --- PERMISOS PÚBLICOS ---
                 .pathMatchers("/api/login/oauth2/code/keycloak").permitAll()
 
@@ -50,28 +50,28 @@ public class SecurityConfig {
                 .pathMatchers(HttpMethod.PUT, "/api/tramos/*/finalizar").hasRole("TRANSPORTISTA")
                 .pathMatchers(HttpMethod.GET, "/api/solicitudes/camion/*/rutas-tramos").hasAnyRole("TRANSPORTISTA")
 
-
-                // --- REGLAS ROL: ADMIN (Operador) ---
+                // --- REGLAS ROL: ADMIN / OPERADOR (mismo nivel) ---
                 .pathMatchers("/api/tarifas/**").hasAnyRole("ADMIN","OPERADOR")
                 .pathMatchers("/api/depositos/**").hasAnyRole("ADMIN","OPERADOR")
                 .pathMatchers("/api/camiones/**").hasAnyRole("ADMIN","OPERADOR")
                 .pathMatchers("/api/tipos-camion/**").hasAnyRole("ADMIN","OPERADOR")
                 .pathMatchers("/api/transportistas/**").hasAnyRole("ADMIN","OPERADOR")
                 .pathMatchers("/api/clientes/**").hasAnyRole("ADMIN","OPERADOR")
-                .pathMatchers("/api/usuarios/**").hasRole("ADMIN")
+                .pathMatchers("/api/usuarios/**").hasAnyRole("ADMIN","OPERADOR")
                 .pathMatchers("/api/rutas/**").hasAnyRole("ADMIN","OPERADOR")
                 .pathMatchers(HttpMethod.PUT, "/api/solicitudes/**/estado").hasAnyRole("ADMIN","OPERADOR")
-                .pathMatchers(HttpMethod.GET, "/api/solicitudes").hasAnyRole("ADMIN","OPERADOR") 
+                .pathMatchers(HttpMethod.GET, "/api/solicitudes").hasAnyRole("ADMIN","OPERADOR")
                 .pathMatchers(HttpMethod.PUT, "/api/solicitudes/*/asignar-camion/*").hasAnyRole("ADMIN","OPERADOR")
+                .pathMatchers(HttpMethod.PUT, "/api/solicitudes/*/asignar-ruta/*").hasAnyRole("ADMIN","OPERADOR")
 
                 // --- REGLAS COMPARTIDAS (Cualquier rol logueado) ---
-                .pathMatchers(HttpMethod.GET, "/api/solicitudes/*/precio-estimado").authenticated()
+                .pathMatchers(HttpMethod.GET, "/api/solicitudes/*/precio-estimado").hasAnyRole("ADMIN","OPERADOR")
                 .pathMatchers(HttpMethod.GET, "/api/solicitudes/*/precio-final").authenticated()
                 .pathMatchers(HttpMethod.GET, "/api/solicitudes/*").authenticated()
-                .pathMatchers("/api/costos/**").authenticated() 
+                .pathMatchers("/api/costos/**").authenticated()
                 .anyExchange().authenticated()
             )
-            
+
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt
                     .jwtAuthenticationConverter(jwtAuthenticationConverter())
@@ -82,37 +82,37 @@ public class SecurityConfig {
         return http.build();
     }
 
-    
+
     // --- "TRADUCTOR" DE ROLES (Corregido y sin 'var') ---
-    
+
     @Bean
     public Converter<Jwt, Mono<AbstractAuthenticationToken>> jwtAuthenticationConverter() {
-        
+
         // 1. Esta es la lógica que lee los roles de Keycloak
         Converter<Jwt, Collection<GrantedAuthority>> keycloakRolesConverter = jwt -> {
-            
+
             Object realmAccessObj = jwt.getClaims().get("realm_access");
 
             if (realmAccessObj instanceof Map) {
                 Map<String, Object> realmAccess = (Map<String, Object>) realmAccessObj;
-                
+
                 Object rolesObj = realmAccess.get("roles");
 
                 if (rolesObj instanceof Collection) {
                     Collection<String> roles = (Collection<String>) rolesObj;
-                    
+
                     return roles.stream()
-                            .map(roleName -> "ROLE_" + roleName) 
+                            .map(roleName -> "ROLE_" + roleName)
                             .map(SimpleGrantedAuthority::new)
                             .collect(Collectors.toList());
                 }
             }
-            
+
             return Collections.emptyList();
         };
 
         // 2. Este es el "puente" que conecta nuestra lógica (1) al mundo reactivo
-        ReactiveJwtGrantedAuthoritiesConverterAdapter reactiveAdapter = 
+        ReactiveJwtGrantedAuthoritiesConverterAdapter reactiveAdapter =
             new ReactiveJwtGrantedAuthoritiesConverterAdapter(keycloakRolesConverter);
 
         // 3. Este es el convertidor final que usa Spring
@@ -123,8 +123,8 @@ public class SecurityConfig {
     }
 
     // --- CLASE "PUENTE" (Corregida para devolver Flux) ---
-    
-    static class ReactiveJwtGrantedAuthoritiesConverterAdapter 
+
+    static class ReactiveJwtGrantedAuthoritiesConverterAdapter
         implements Converter<Jwt, Flux<GrantedAuthority>> {
 
         private final Converter<Jwt, Collection<GrantedAuthority>> converter;
@@ -135,7 +135,7 @@ public class SecurityConfig {
 
         @Override
         public Flux<GrantedAuthority> convert(Jwt jwt) {
-            return Flux.fromIterable(converter.convert(jwt)); 
+            return Flux.fromIterable(converter.convert(jwt));
         }
     }
 }
