@@ -11,6 +11,7 @@ import com.backend.tpi_backend.serviciosolicitudes.dto.ContenedorUbicacionDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.CoordenadasDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.CostoTotalDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.CostoTramoDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.RutaConTramosDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.RutaDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.RutaPosicionDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.RutaTentativaDTO;
@@ -646,6 +647,41 @@ public class SolicitudService {
                 ContenedorDTO.class
         );
         return cont != null ? cont.getVolumen() : null;
+        }
+
+        // === Obtener rutas de un camion ====
+        public List<RutaConTramosDTO> obtenerRutasConTramosPorCamion(String dominioCamion) {
+
+        // Estados que te interesan
+        List<String> estadosValidos = List.of("PROGRAMADA", "EN_TRANSITO");
+
+        // 1) Buscar solicitudes por dominio_camion y estado
+        List<Solicitud> solicitudes = repo
+                .findByDominioCamionAndEstado_DescripcionIn(dominioCamion, estadosValidos);
+
+        // 2) Para cada solicitud, ir al servicio de rutas y traer los tramos
+        List<RutaConTramosDTO> resultado = new ArrayList<>();
+
+        for (Solicitud s : solicitudes) {
+
+        Long idRuta = s.getIdRuta();
+
+        // Llamada al servicio rutas: /{idRuta}/tramos-detallados
+        String url = rutasBaseUrl + "/rutas/" + idRuta + "/tramos-detallados";
+
+        TramoDTO[] tramosArray = restTemplate.getForObject(url, TramoDTO[].class);
+
+        RutaConTramosDTO dto = new RutaConTramosDTO();
+        dto.setIdSolicitud(s.getId());
+        dto.setIdRuta(idRuta);
+        dto.setEstadoSolicitud(s.getEstado().getDescripcion());
+        dto.setTramos(tramosArray != null ? Arrays.asList(tramosArray) : List.of());
+
+        resultado.add(dto);
+        }
+
+        return resultado;
+
         }
 
 }

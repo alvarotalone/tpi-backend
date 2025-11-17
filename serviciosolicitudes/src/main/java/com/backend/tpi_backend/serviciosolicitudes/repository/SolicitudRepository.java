@@ -10,4 +10,11 @@ import java.util.List;
 public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
     // busca solicitudes por la descripción del estado
     List<Solicitud> findByEstado_Descripcion(String descripcion);
+
+    // Busca segun patente y estado
+    List<Solicitud> findByDominioCamionAndEstado_DescripcionIn(
+            String dominioCamion,
+            List<String> descripcionesEstados
+    );
+
 }

@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 
 @RestController
-@RequestMapping("/api/costos") // Nueva ruta base para cálculos
+@RequestMapping("/costos") // Nueva ruta base para cálculos
 public class CostoController {
 
     private final TarifaService tarifaService;

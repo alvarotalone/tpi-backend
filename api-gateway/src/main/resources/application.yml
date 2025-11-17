@@ -30,6 +30,9 @@ spring:
           uri: http://localhost:8083
           predicates:
             - Path=/api/tarifas/**, /api/costos/**
+          filters:
+            - RewritePath=/api/(?<segment>.*), /${segment}
+
 
         # 4. ServicioRutas (8084)
         - id: rutas-service
@@ -80,3 +83,9 @@ keycloak:
   realm: tpi-backend
   client-id: tpi-backend-client
   redirect-uri: http://localhost:8080/api/login/oauth2/code/keycloak
+
+
+#debug
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

@@ -42,11 +42,13 @@ public class SecurityConfig {
 
                 // --- REGLAS ROL: CLIENTE ---
                 .pathMatchers(HttpMethod.POST, "/api/solicitudes").hasRole("CLIENTE")
-                .pathMatchers(HttpMethod.GET, "/api/solicitudes/{id}/seguimiento").hasRole("CLIENTE")
+                .pathMatchers(HttpMethod.GET, "/api/solicitudes/*/seguimiento").hasRole("CLIENTE")
 
                 // --- REGLAS ROL: TRANSPORTISTA ---
-                .pathMatchers(HttpMethod.PUT, "/api/tramos/{id}/iniciar").hasRole("TRANSPORTISTA")
-                .pathMatchers(HttpMethod.PUT, "/api/tramos/{id}/finalizar").hasRole("TRANSPORTISTA")
+                .pathMatchers(HttpMethod.PUT, "/api/tramos/*/iniciar").hasRole("TRANSPORTISTA")
+                .pathMatchers(HttpMethod.PUT, "/api/tramos/*/finalizar").hasRole("TRANSPORTISTA")
+                .pathMatchers(HttpMethod.GET, "/api/solicitudes/camion/*/rutas-tramos").hasAnyRole("TRANSPORTISTA")
+
 
                 // --- REGLAS ROL: ADMIN (Operador) ---
                 .pathMatchers("/api/tarifas/**").hasAnyRole("ADMIN","OPERADOR")
@@ -57,13 +59,13 @@ public class SecurityConfig {
                 .pathMatchers("/api/clientes/**").hasAnyRole("ADMIN","OPERADOR")
                 .pathMatchers("/api/usuarios/**").hasRole("ADMIN")
                 .pathMatchers("/api/rutas/**").hasAnyRole("ADMIN","OPERADOR")
-                .pathMatchers(HttpMethod.PUT, "/api/solicitudes/{id}/estado").hasAnyRole("ADMIN","OPERADOR")
+                .pathMatchers(HttpMethod.PUT, "/api/solicitudes/**/estado").hasAnyRole("ADMIN","OPERADOR")
                 .pathMatchers(HttpMethod.GET, "/api/solicitudes").hasAnyRole("ADMIN","OPERADOR")
 
                 // --- REGLAS COMPARTIDAS (Cualquier rol logueado) ---
-                .pathMatchers(HttpMethod.GET, "/api/solicitudes/{id}/precio-estimado").authenticated()
-                .pathMatchers(HttpMethod.GET, "/api/solicitudes/{id}/precio-final").authenticated()
-                .pathMatchers(HttpMethod.GET, "/api/solicitudes/{id}").authenticated()
+                .pathMatchers(HttpMethod.GET, "/api/solicitudes/*/precio-estimado").authenticated()
+                .pathMatchers(HttpMethod.GET, "/api/solicitudes/*/precio-final").authenticated()
+                .pathMatchers(HttpMethod.GET, "/api/solicitudes/*").authenticated()
                 .pathMatchers("/api/costos/**").authenticated() 
                 .anyExchange().authenticated()
             )
