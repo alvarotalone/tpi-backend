@@ -6,6 +6,7 @@ import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudRequestDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudResponseDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.CambioEstadoSolicitudDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.ContenedorUbicacionDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.RutaConTramosDTO;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -163,4 +164,15 @@ public class SolicitudController {
     public ResponseEntity<Double> calcular(@PathVariable Long id) {
         return ResponseEntity.ok(service.calcularCostoEstimado(id));
     }
+
+    @GetMapping("/camion/{dominio}/rutas-tramos")
+    public ResponseEntity<List<RutaConTramosDTO>> obtenerRutasConTramosPorCamion(
+            @PathVariable String dominio) {
+
+        List<RutaConTramosDTO> rutas = service
+                .obtenerRutasConTramosPorCamion(dominio);
+
+        return ResponseEntity.ok(rutas);
+    }
+
 }

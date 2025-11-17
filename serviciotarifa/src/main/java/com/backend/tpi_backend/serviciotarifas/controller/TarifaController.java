@@ -9,8 +9,9 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
+
 @RestController
-@RequestMapping("/api/tarifas")
+@RequestMapping("/tarifas")
 public class TarifaController {
 
     private final TarifaService tarifaService;

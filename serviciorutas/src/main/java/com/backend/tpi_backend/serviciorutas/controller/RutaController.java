@@ -128,7 +128,9 @@ public class RutaController {
     }
 
     @GetMapping("/{idRuta}/tramos-detallados")
-    public ResponseEntity<List<TramoDTO>> obtenerTramosDetallados(@PathVariable Long idRuta) {
+    public ResponseEntity<List<TramoDTO>> obtenerTramosDetallados(
+            @PathVariable("idRuta") Long idRuta) {
+
         return ResponseEntity.ok(
             rutaService.obtenerTramosDTOConDistancia(idRuta)
         );
