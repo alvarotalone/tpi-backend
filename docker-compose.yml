@@ -1,0 +1,139 @@
+version: '3.8'
+
+services:
+
+  # --- 1. INFRAESTRUCTURA (Keycloak) ---
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.3
+    container_name: keycloak
+    command: start-dev
+    ports:
+      - "8090:8080" # Puerto externo 8090
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin123
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+
+# --- SERVICIO DE MAPAS (OSRM) ---
+  osrm-backend:
+    image: osrm/osrm-backend
+    container_name: osrm-backend
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mapeamos tu carpeta local 'osrm-data' a la carpeta '/data' del contenedor
+      - ./osrm-data:/data
+    # El comando para arrancar (¡OJO! El nombre del archivo .osrm debe coincidir con el que copiaste)
+    command: osrm-routed /data/argentina-latest.osrm
+    restart: always
+
+
+  # --- 2. EL GUARDIA (GATEWAY) ---
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      # Conexión con Keycloak (usamos nombre del servicio "keycloak")
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://keycloak:8080/realms/tpi-backend
+      KEYCLOAK_SERVER-URL: http://keycloak:8080
+      KEYCLOAK_REALM: tpi-backend
+      KEYCLOAK_CLIENT-ID: tpi-backend-client
+      KEYCLOAK_REDIRECT-URI: http://localhost:8080/api/login/oauth2/code/keycloak
+      # Mapa de Rutas para el Gateway
+      SPRING_CLOUD_GATEWAY_ROUTES_0_URI: http://servicioclientes:8081
+      SPRING_CLOUD_GATEWAY_ROUTES_1_URI: http://serviciocamiones:8082
+      SPRING_CLOUD_GATEWAY_ROUTES_2_URI: http://serviciotarifa:8083
+      SPRING_CLOUD_GATEWAY_ROUTES_3_URI: http://serviciorutas:8084
+      SPRING_CLOUD_GATEWAY_ROUTES_4_URI: http://serviciousuarios:8085
+      SPRING_CLOUD_GATEWAY_ROUTES_5_URI: http://serviciodepositos:8086
+      SPRING_CLOUD_GATEWAY_ROUTES_6_URI: http://serviciosolicitudes:8087
+    depends_on:
+      - keycloak
+      - servicioclientes
+      - serviciocamiones
+      - serviciotarifa
+      - serviciorutas
+      - serviciousuarios
+      - serviciodepositos
+      - serviciosolicitudes
+
+  # --- 3. LOS MICROSERVICIOS (EMPLEADOS - Modo H2) ---
+
+  servicioclientes:
+    build: ./servicioclientes
+    container_name: servicioclientes
+    ports:
+      - "8081:8081"
+    # Usa H2 (configuración interna)
+
+  serviciocamiones:
+    build: ./serviciocamiones
+    container_name: serviciocamiones
+    ports:
+      - "8082:8082"
+    # Usa H2 (configuración interna)
+
+  serviciotarifa:
+    build: ./serviciotarifa
+    container_name: serviciotarifa
+    ports:
+      - "8083:8083"
+    environment:
+      # Configuración extra para que Tarifa encuentre a Depósitos por la red de Docker
+      DEPOSITOS_API_URL: http://serviciodepositos:8086/depositos/
+    depends_on:
+      - serviciodepositos
+
+  serviciorutas:
+    build: ./serviciorutas
+    container_name: serviciorutas
+    ports:
+      - "8084:8084"
+    environment:
+      # (Acá deberían estar tus configs de base de datos que ya tenías...)
+      
+      # LE DECIMOS DÓNDE ESTÁ EL MAPA:
+      # (Chequeá con tu compañero si su código Java lee esta variable "OSRM_API_URL"
+      #  o si la llamó de otra forma).
+      OSRM_API_URL: http://osrm-backend:5000
+      
+    depends_on:
+      - osrm-backend # <-- Espera a que el mapa cargue antes de arrancar
+
+  serviciousuarios:
+    build: ./serviciousuarios
+    container_name: serviciousuarios
+    ports:
+      - "8085:8085"
+    environment:
+      # Configuración del Puente a Keycloak
+      KEYCLOAK_ADMIN_SERVER-URL: http://keycloak:8080 # ¡Ojo! Acá usa el puerto interno de Docker
+      KEYCLOAK_ADMIN_REALM: master
+      KEYCLOAK_ADMIN_CLIENT-ID: admin-cli
+      KEYCLOAK_ADMIN_USERNAME: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin123
+      KEYCLOAK_TARGET-REALM: tpi-backend
+    depends_on:
+      - keycloak
+
+  serviciodepositos:
+    build: ./serviciodepositos
+    container_name: serviciodepositos
+    ports:
+      - "8086:8086"
+    # Usa H2 (configuración interna)
+
+  serviciosolicitudes:
+    build: ./serviciosolicitudes
+    container_name: serviciosolicitudes
+    ports:
+      - "8087:8087"
+    # Usa H2 (configuración interna)
+
+volumes:
+  keycloak_data:
