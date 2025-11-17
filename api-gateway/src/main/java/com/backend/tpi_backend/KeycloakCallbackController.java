@@ -1,5 +1,6 @@
-package com.backend.tpi_backend;
+package com.backend.tpi_backend; // (El mismo package que tu ApiGatewayApplication)
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,39 +15,32 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import reactor.core.publisher.Mono;
 
-import java.util.HashMap;
-import java.util.Map;
-
 @RestController
 public class KeycloakCallbackController {
 
     private static final Logger log = LoggerFactory.getLogger(KeycloakCallbackController.class);
 
+    // Estas variables las toma de tu application.yml
     @Value("${keycloak.server-url}")
     private String keycloakServerUrl;
-
     @Value("${keycloak.realm}")
     private String realm;
-
     @Value("${keycloak.client-id}")
     private String clientId;
-
     @Value("${keycloak.redirect-uri}")
     private String redirectUri;
 
     private final WebClient webClient = WebClient.create();
 
+    // ESTE ES EL ENDPOINT QUE TE DABA 404
     @GetMapping("/api/login/oauth2/code/keycloak")
-    public Mono<Map<String, Object>> intercambiarCode(
+    public Mono<String> intercambiarCode(
             @RequestParam(name = "code", required = false) String code) {
-
-        Map<String, Object> respuesta = new HashMap<>();
 
         log.info("🔎 Parámetro 'code' recibido: {}", code);
 
         if (code == null || code.isBlank()) {
-            respuesta.put("error", "Keycloak no envió parámetro 'code'.");
-            return Mono.just(respuesta);
+            return Mono.just("Error: Keycloak no envió parámetro 'code'.");
         }
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -63,32 +57,25 @@ public class KeycloakCallbackController {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters.fromFormData(formData))
                 .retrieve()
-                .bodyToMono(String.class) // respuesta cruda de Keycloak
-                .map(body -> {
-                    log.info("🔐 Token recibido desde Keycloak: {}", body);
-
-                    Map<String, Object> ok = new HashMap<>();
-                    ok.put("mensaje", "Token recibido y logueado en consola del API Gateway.");
-                    ok.put("token_raw", body); // por si querés verlo en el navegador
-                    return ok;
+                .bodyToMono(JsonNode.class) // Pedimos un JsonNode
+                .map(tokenResponse -> {
+                    // Extraemos solo el access_token y lo devolvemos
+                    if (tokenResponse != null && tokenResponse.has("access_token")) {
+                        log.info("🔐 Token recibido y extraído con éxito.");
+                        return tokenResponse.get("access_token").asText();
+                    } else {
+                        log.error("❌ La respuesta de Keycloak no contiene un 'access_token'.");
+                        return "Error: La respuesta de Keycloak no contiene un 'access_token'.";
+                    }
                 })
                 .onErrorResume(WebClientResponseException.class, e -> {
                     log.error("❌ Error HTTP al obtener token de Keycloak. Status: {}, body: {}",
                             e.getStatusCode(), e.getResponseBodyAsString());
-
-                    Map<String, Object> err = new HashMap<>();
-                    err.put("error", "Error HTTP al obtener token de Keycloak");
-                    err.put("status", e.getStatusCode().value());
-                    err.put("body", e.getResponseBodyAsString());
-                    return Mono.just(err);
+                    return Mono.just("Error HTTP al obtener token: " + e.getResponseBodyAsString());
                 })
                 .onErrorResume(Exception.class, e -> {
                     log.error("❌ Error inesperado en el callback de Keycloak", e);
-
-                    Map<String, Object> err = new HashMap<>();
-                    err.put("error", "Error inesperado en callback");
-                    err.put("detalle", e.getMessage());
-                    return Mono.just(err);
+                    return Mono.just("Error inesperado en callback: " + e.getMessage());
                 });
     }
 }
