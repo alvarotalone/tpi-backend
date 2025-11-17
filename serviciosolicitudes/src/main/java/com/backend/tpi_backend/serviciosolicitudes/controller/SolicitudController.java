@@ -158,4 +158,9 @@ public class SolicitudController {
                 service.obtenerUbicacionesContenedoresEnTransito()
         );
     }
+
+    @GetMapping("/{id}/costo-estimado")
+    public ResponseEntity<Double> calcular(@PathVariable Long id) {
+        return ResponseEntity.ok(service.calcularCostoEstimado(id));
+    }
 }

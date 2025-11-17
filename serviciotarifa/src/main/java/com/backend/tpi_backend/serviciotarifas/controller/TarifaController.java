@@ -54,7 +54,7 @@ public class TarifaController {
         return ResponseEntity.ok(tarifaService.getTarifasVigentes(fecha));
     }
 
-    @PostMapping("/calcular-total")
+    @PostMapping("/costos/calcular")
     public ResponseEntity<Double> calcularCostoTotal(@RequestBody CostoTotalDTO request) {
         Double total = tarifaService.calcularCostoTotal(request);
         return ResponseEntity.ok(total);

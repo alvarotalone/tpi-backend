@@ -4,9 +4,19 @@ import lombok.Data;
 
 @Data
 public class CamionDTO {
+
     private String dominio;
+
+    // Datos de disponibilidad si querés mantenerlos
     private boolean disponible;
-    private Long idTipoCamion;       // se usa como campo simple, no como FK real
-    private Long idTransportista;    // idem
+    private Long idTransportista;
+
+    // 🔹 Datos técnicos obligatorios (se traen de TipoCamion)
+    private Long idTipoCamion;
+    private Double capacidadPesoKg;
+    private Double capacidadVolumenM3;
+    private Double costoBaseKm;
+    private Double consumoCombustibleKm;
 }
+
 

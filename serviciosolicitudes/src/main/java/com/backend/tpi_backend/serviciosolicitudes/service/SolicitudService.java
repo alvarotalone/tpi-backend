@@ -8,6 +8,9 @@ import com.backend.tpi_backend.serviciosolicitudes.dto.CamionDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.ClienteDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.ContenedorDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.ContenedorUbicacionDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.CoordenadasDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.CostoTotalDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.CostoTramoDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.RutaDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.RutaPosicionDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.RutaTentativaDTO;
@@ -16,11 +19,13 @@ import com.backend.tpi_backend.serviciosolicitudes.model.Solicitud;
 import com.backend.tpi_backend.serviciosolicitudes.repository.EstadoSolicitudRepository;
 import com.backend.tpi_backend.serviciosolicitudes.repository.SolicitudRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 import java.util.*;
@@ -31,6 +36,9 @@ public class SolicitudService {
         private final SolicitudRepository repo;
         private final EstadoSolicitudRepository estadoRepo;
         private final RestTemplate restTemplate;
+
+        @Value("${servicio.tarifas.url}")
+        private String tarifasBaseUrl;
 
         @Value("${servicio.clientes.url}")
         private String clientesBaseUrl;
@@ -247,36 +255,22 @@ public class SolicitudService {
         Solicitud solicitud = repo.findById(idSolicitud)
                 .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
 
-        double latO = solicitud.getLatitudOrigen();
-        double lonO = solicitud.getLongitudOrigen();
-        double latD = solicitud.getLatitudDestino();
-        double lonD = solicitud.getLongitudDestino();
+        CoordenadasDTO dto = new CoordenadasDTO();
+        dto.setLatO(solicitud.getLatitudOrigen());
+        dto.setLonO(solicitud.getLongitudOrigen());
+        dto.setLatD(solicitud.getLatitudDestino());
+        dto.setLonD(solicitud.getLongitudDestino());
 
-        
-
-        // ### Ruta Directa ###
-        var directa = restTemplate.postForObject(
-                rutasBaseUrl + "/rutas/generar-directa",
-                Map.of("latO", latO, "lonO", lonO, "latD", latD, "lonD", lonD),
-                RutaTentativaDTO.class
+        // Llamada única al endpoint /rutas/tentativas
+        RutaTentativaDTO[] rutas = restTemplate.postForObject(
+                rutasBaseUrl + "/rutas/tentativas",
+                dto,
+                RutaTentativaDTO[].class
         );
 
-        // ### Ruta Norte ###
-        var norte = restTemplate.postForObject(
-                rutasBaseUrl + "/rutas/generar-norte",
-                Map.of("latO", latO, "lonO", lonO, "latD", latD, "lonD", lonD),
-                RutaTentativaDTO.class
-        );
-
-        // ### Ruta Este ###
-        var este = restTemplate.postForObject(
-                rutasBaseUrl + "/rutas/generar-este",
-                Map.of("latO", latO, "lonO", lonO, "latD", latD, "lonD", lonD),
-                RutaTentativaDTO.class
-        );
-
-        return List.of(directa, norte, este);
+        return List.of(rutas);
         }
+
 
         public SolicitudResponseDTO asignarRuta(Long idSolicitud, Long idRuta) {
 
@@ -452,22 +446,6 @@ public class SolicitudService {
         }
 
 
-
-        private void rutaServiceAsignarCamion(Long idRuta, String dominio, double peso, double volumen) {
-
-        var body = Map.of(
-                "dominioCamion", dominio,
-                "peso", peso,
-                "volumen", volumen
-        );
-
-        restTemplate.postForObject(
-                rutasBaseUrl + "/" + idRuta + "/asignar-camion",
-                body,
-                Void.class
-        );
-        }
-
         private SolicitudResponseDTO mapToDTO(Solicitud s) {
         SolicitudResponseDTO dto = new SolicitudResponseDTO();
 
@@ -496,9 +474,10 @@ public class SolicitudService {
 
 
         //== Buscar contenedores ===
+        //== Buscar contenedores ===
         public List<ContenedorUbicacionDTO> obtenerUbicacionesContenedoresEnTransito() {
 
-        // 1) Solicitudes en estado EN_TRANSITO (usa estado.descripcion)
+        // 1) Solicitudes en estado EN_TRANSITO
         List<Solicitud> solicitudesEnTransito =
                 repo.findByEstado_Descripcion("EN_TRANSITO");
 
@@ -506,49 +485,21 @@ public class SolicitudService {
                 return Collections.emptyList();
         }
 
-        // Map: idContenedor -> idRuta (usando tus campos idContenedor e idRuta)
+        // 2) Mapear contenedor -> ruta (desde la solicitud)
         Map<Long, Long> contenedorRuta = solicitudesEnTransito.stream()
                 .filter(s -> s.getIdContenedor() != null && s.getIdRuta() != null)
                 .collect(Collectors.toMap(
                         Solicitud::getIdContenedor,
                         Solicitud::getIdRuta,
-                        (existing, replacement) -> existing // por si se repite
+                        (existing, replacement) -> existing   // si un contenedor tiene varias solicitudes
                 ));
 
         if (contenedorRuta.isEmpty()) {
                 return Collections.emptyList();
         }
 
-        List<Long> contenedorIds = new ArrayList<>(contenedorRuta.keySet());
-
-        // 2) Llamar a servicioclientes para filtrar solo los contenedores EN_TRANSITO
-        String urlValidarContenedores = clientesBaseUrl + "/contenedores/validar-en-transito";
-
-        Long[] respuestaIds = restTemplate.postForObject(
-                urlValidarContenedores,
-                contenedorIds,
-                Long[].class
-        );
-
-        List<Long> contenedoresValidos = (respuestaIds != null)
-                ? Arrays.asList(respuestaIds)
-                : Collections.emptyList();
-
-        if (contenedoresValidos.isEmpty()) {
-                return Collections.emptyList();
-        }
-
-        // Filtrar solo los pares contenedor-ruta que sigan en tránsito
-        Map<Long, Long> contenedorRutaValidos = contenedorRuta.entrySet().stream()
-                .filter(e -> contenedoresValidos.contains(e.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-        if (contenedorRutaValidos.isEmpty()) {
-                return Collections.emptyList();
-        }
-
         // 3) Pedir a serviciorutas la última posición de cada ruta
-        List<Long> rutaIds = contenedorRutaValidos.values().stream()
+        List<Long> rutaIds = contenedorRuta.values().stream()
                 .distinct()
                 .toList();
 
@@ -571,13 +522,13 @@ public class SolicitudService {
         Map<Long, RutaPosicionDTO> rutaPosicionMap = rutasInfo.stream()
                 .collect(Collectors.toMap(RutaPosicionDTO::getIdRuta, r -> r));
 
-        // 4) Armar la colección final contenedor + ruta + coords
-        return contenedorRutaValidos.entrySet().stream()
+        // 4) Construir DTO final contenedor + ruta + coordenadas
+        return contenedorRuta.entrySet().stream()
                 .map(e -> {
                         Long idContenedor = e.getKey();
                         Long idRuta = e.getValue();
                         RutaPosicionDTO pos = rutaPosicionMap.get(idRuta);
-                        if (pos == null) return null; // ruta sin posición → se descarta
+                        if (pos == null) return null;
                         return new ContenedorUbicacionDTO(
                                 idContenedor,
                                 idRuta,
@@ -587,6 +538,114 @@ public class SolicitudService {
                 })
                 .filter(Objects::nonNull)
                 .toList();
+        }
+
+        // ==========================================================
+        // CÁLCULO DEL COSTO ESTIMADO DE UNA SOLICITUD
+        // ==========================================================
+        public Double calcularCostoEstimado(Long idSolicitud) {
+
+        // 1) Obtener la solicitud
+        Solicitud sol = repo.findById(idSolicitud)
+                .orElseThrow(() -> new RuntimeException("Solicitud no encontrada"));
+
+        if (sol.getIdRuta() == null) {
+                throw new RuntimeException("La solicitud no tiene ruta asignada");
+        }
+
+        Long idRuta = sol.getIdRuta();
+
+        // 2) Obtener peso y volumen del contenedor
+        ContenedorDTO cont = restTemplate.getForObject(
+                clientesBaseUrl + "/contenedores/" + sol.getIdContenedor(),
+                ContenedorDTO.class
+        );
+
+        if (cont == null) {
+                throw new RuntimeException("No se pudo obtener el contenedor");
+        }
+
+        double peso = cont.getPeso();
+        double volumen = cont.getVolumen();
+
+        // 3) Obtener tramos de la ruta
+        TramoDTO[] tramos = restTemplate.getForObject(
+                rutasBaseUrl + "/rutas/" + idRuta + "/tramos",
+                TramoDTO[].class
+        );
+
+        if (tramos == null || tramos.length == 0) {
+                throw new RuntimeException("La ruta no contiene tramos");
+        }
+
+        // 4) Obtener camiones elegibles
+        String urlElegibles =
+                camionesBaseUrl + "/camiones/elegibles?peso=" + peso + "&volumen=" + volumen;
+
+        CamionDTO[] elegibles = restTemplate.getForObject(urlElegibles, CamionDTO[].class);
+
+        if (elegibles == null || elegibles.length == 0) {
+                throw new RuntimeException("No hay camiones elegibles");
+        }
+
+        // 5) Calcular promedios (consumo y costo base)
+        double promedioConsumo = Arrays.stream(elegibles)
+                .mapToDouble(CamionDTO::getConsumoCombustibleKm)
+                .average()
+                .orElseThrow(() -> new RuntimeException("No se pudo calcular consumo promedio"));
+
+        double promedioCostoKm = Arrays.stream(elegibles)
+                .mapToDouble(CamionDTO::getCostoKm)
+                .average()
+                .orElseThrow(() -> new RuntimeException("No se pudo calcular costo base promedio"));
+
+        Long tipoPromedio = elegibles[0].getIdTipoCamion();
+
+        // 6) Construir CostoTotalDTO para enviar a servicio-tarifas
+        CostoTotalDTO totalDTO = new CostoTotalDTO();
+        List<CostoTramoDTO> listaTramosDTO = new ArrayList<>();
+
+        for (TramoDTO t : tramos) {
+                CostoTramoDTO dto = new CostoTramoDTO();
+                dto.setIdTipoCamion(tipoPromedio);
+                dto.setCostoBaseKmCamion(BigDecimal.valueOf(promedioCostoKm));
+                dto.setConsumoCombustibleCamion(promedioConsumo);
+                dto.setDistanciaEnKm(t.getDistanciaMetros() / 1000.0);
+                dto.setFecha(LocalDate.now());
+                listaTramosDTO.add(dto);
+        }
+
+        totalDTO.setTramos(listaTramosDTO);
+        totalDTO.setEstadias(Collections.emptyList()); // por ahora sin estadías
+
+        // 7) Llamar a servicio-tarifas
+        Double costoEstimado = restTemplate.postForObject(
+                tarifasBaseUrl + "/calcular-total",
+                totalDTO,
+                Double.class
+        );
+
+        // 8) Guardar en solicitud
+        sol.setCostoEstimado(BigDecimal.valueOf(costoEstimado));
+        repo.save(sol);
+
+        return costoEstimado;
+        }
+
+        private Double obtenerPesoContenedor(Long idContenedor) {
+        ContenedorDTO cont = restTemplate.getForObject(
+                clientesBaseUrl + "/contenedores/" + idContenedor,
+                ContenedorDTO.class
+        );
+        return cont != null ? cont.getPeso() : null;
+        }
+
+        private Double obtenerVolumenContenedor(Long idContenedor) {
+        ContenedorDTO cont = restTemplate.getForObject(
+                clientesBaseUrl + "/contenedores/" + idContenedor,
+                ContenedorDTO.class
+        );
+        return cont != null ? cont.getVolumen() : null;
         }
 
 }

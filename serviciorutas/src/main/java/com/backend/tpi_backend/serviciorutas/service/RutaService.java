@@ -12,6 +12,8 @@ import com.backend.tpi_backend.serviciorutas.repository.TipoTramoRepository;
 import com.backend.tpi_backend.serviciorutas.repository.TramoRepository;
 import com.backend.tpi_backend.serviciorutas.dto.RutaTentativaDTO;
 import com.backend.tpi_backend.serviciorutas.client.DepositoClient;
+import com.backend.tpi_backend.serviciorutas.dto.TramoDTO;
+import com.backend.tpi_backend.serviciorutas.dto.EstadiaCalculoDTO;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -24,6 +26,7 @@ import jakarta.persistence.EntityNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class RutaService {
@@ -173,69 +176,7 @@ public class RutaService {
         }
     }
 
-    // ============================================================
-    // LÓGICA PRINCIPAL — ASIGNAR CAMIÓN A UNA RUTA
-    // ============================================================
-
-    /**
-     * Asigna un camión a una ruta:
-     *  1. Obtiene la ruta
-     *  2. Obtiene los tramos
-     *  3. Calcula fechaInicioMin y fechaFinMax
-     *  4. Valida capacidad del camión (MS Camiones)
-     *  5. Valida disponibilidad (MS Camiones)
-     *  6. Reserva disponibilidad
-     *  7. Asigna dominio a ruta
-     *  8. Asigna dominio a cada tramo
     
-    public Ruta asignarCamionARuta(Long idRuta, String dominioCamion,
-                                double pesoContenedor, double volumenContenedor) {
-
-        Ruta ruta = getById(idRuta);
-
-        List<Tramo> tramos = obtenerTramosDeRuta(idRuta);
-        if (tramos.isEmpty()) {
-            throw new IllegalStateException("La ruta no tiene tramos, no se puede asignar camión");
-        }
-
-        LocalDateTime fechaInicio = calcularFechaMinInicio(tramos);
-        LocalDateTime fechaFin = calcularFechaMaxFin(tramos);
-
-        // 1) Validar capacidad
-        boolean puedeCargar = validarCapacidadCamion(dominioCamion, pesoContenedor, volumenContenedor);
-        if (!puedeCargar) {
-            throw new IllegalStateException("El camión no puede transportar el contenedor");
-        }
-
-        // 2) Validar disponibilidad → usando GET /camiones/disponibles
-        String urlDisponibles = urlServicioCamiones
-                + "/disponibles?fechaInicio=" + fechaInicio
-                + "&fechaFin=" + fechaFin;
-
-        ResponseEntity<CamionDTO[]> respDisp =
-                restTemplate.getForEntity(urlDisponibles, CamionDTO[].class);
-
-        List<CamionDTO> disponibles = respDisp.getBody() != null
-                ? Arrays.asList(respDisp.getBody())
-                : List.of();
-
-        boolean disponible = disponibles.stream()
-                .anyMatch(c -> c.getDominio().equals(dominioCamion));
-
-        if (!disponible) {
-            throw new IllegalStateException("El camión no está disponible en ese rango de fechas");
-        }
-
-        // 3) Reservar camión
-        reservarDisponibilidadCamion(dominioCamion, fechaInicio, fechaFin);
-
-        // 5) Actualizar tramos
-        tramos.forEach(t -> t.setDominioCamion(dominioCamion));
-        tramoRepository.saveAll(tramos);
-
-        return ruta;
-    }
-    */
 
     public void asignarCamionARuta(Long idRuta, String dominioCamion) {
 
@@ -436,6 +377,102 @@ public class RutaService {
             dto.setLongitudDestino(ultimoTramo.getLongitudDestino());
 
             resultado.add(dto);
+        }
+
+        return resultado;
+    }
+
+    /**
+     * Devuelve los tramos de una ruta con la distancia calculada por OSRM.
+     */
+    public List<TramoDTO> obtenerTramosDTOConDistancia(Long idRuta) {
+
+        List<Tramo> tramos = obtenerTramosDeRuta(idRuta);
+        if (tramos.isEmpty()) {
+            throw new IllegalStateException("La ruta no tiene tramos");
+        }
+
+        List<TramoDTO> dtos = new ArrayList<>();
+
+        for (Tramo t : tramos) {
+            TramoDTO dto = new TramoDTO();
+            dto.setId(t.getId());
+            dto.setLatitudOrigen(t.getLatitudOrigen());
+            dto.setLongitudOrigen(t.getLongitudOrigen());
+            dto.setLatitudDestino(t.getLatitudDestino());
+            dto.setLongitudDestino(t.getLongitudDestino());
+            dto.setDominioCamion(t.getDominioCamion());
+            dto.setFhInicioReal(t.getFhInicioReal());
+            dto.setFhFinReal(t.getFhFinReal());
+
+            dto.setTipoTramo(
+                    t.getTipoTramo() != null ? t.getTipoTramo().getDescripcion() : null
+            );
+            dto.setEstadoTramo(
+                    t.getEstadoTramo() != null ? t.getEstadoTramo().getDescripcion() : null
+            );
+
+            // Distancia en metros usando OSRM
+            double distancia = calcularDistanciaTramo(t); // ya lo tenés implementado
+            dto.setDistanciaMetros(distancia);
+
+            dtos.add(dto);
+        }
+
+        return dtos;
+    }
+
+    /**
+     * Calcula las estadías por depósito para una ruta.
+     * Supone que:
+     * - los tramos que llegan/salen de un depósito tienen idDeposito seteado
+     * - fhInicioReal / fhFinReal están cargados
+     */
+    public List<EstadiaCalculoDTO> calcularEstadiasRuta(Long idRuta) {
+
+        List<Tramo> tramos = obtenerTramosDeRuta(idRuta);
+
+        // Si no tenés estadías todavía, podés devolver directamente List.of()
+        // return List.of();
+
+        // Filtrar solo tramos con depósito asociado
+        List<Tramo> conDeposito = tramos.stream()
+                .filter(t -> t.getIdDeposito() != null)
+                .toList();
+
+        List<EstadiaCalculoDTO> resultado = new ArrayList<>();
+
+        // Agrupamos por idDeposito
+        Map<Long, List<Tramo>> porDeposito = conDeposito.stream()
+                .collect(Collectors.groupingBy(Tramo::getIdDeposito));
+
+        for (Map.Entry<Long, List<Tramo>> entry : porDeposito.entrySet()) {
+
+            Long idDeposito = entry.getKey();
+            List<Tramo> tramosDep = entry.getValue();
+
+            // tramo de llegada = el que tiene menor fhInicioReal
+            // tramo de salida = el que tiene mayor fhFinReal
+            Tramo llegada = tramosDep.stream()
+                    .filter(t -> t.getFhFinReal() != null)
+                    .min(Comparator.comparing(Tramo::getFhFinReal))
+                    .orElse(null);
+
+            Tramo salida = tramosDep.stream()
+                    .filter(t -> t.getFhInicioReal() != null)
+                    .max(Comparator.comparing(Tramo::getFhInicioReal))
+                    .orElse(null);
+
+            if (llegada == null || salida == null) {
+                continue; // aún no termina el ciclo por ese depósito
+            }
+
+            EstadiaCalculoDTO e = new EstadiaCalculoDTO();
+            e.setIdDeposito(idDeposito);
+            e.setFechaInicio(llegada.getFhFinReal().toLocalDate());
+            e.setFechaFin(salida.getFhInicioReal().toLocalDate());
+
+            resultado.add(e);
         }
 
         return resultado;

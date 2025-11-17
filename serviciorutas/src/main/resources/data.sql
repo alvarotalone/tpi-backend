@@ -9,7 +9,6 @@ INSERT INTO tipo_tramo (id_tipo_tramo, descripcion) VALUES
 (3, 'deposito-deposito'),
 (4, 'deposito-destino');
 
-
 -- 🔹 Estados de Tramo
 INSERT INTO estado_tramo (descripcion)
 VALUES 
@@ -21,34 +20,10 @@ VALUES
 -- 🔹 Rutas
 INSERT INTO ruta (cantidad_tramos, cantidad_depositos)
 VALUES 
-    (2, 1),
-    (3, 2);
+    (2, 1),   -- id_ruta = 1
+    (3, 2);   -- id_ruta = 2
 
--- ========================================================
--- DATOS DE TRAMOS (con relaciones ManyToOne locales)
--- ========================================================
-
-INSERT INTO tramo (
-    latitud_origen,
-    longitud_origen,
-    latitud_destino,
-    longitud_destino,
-    id_tipo_tramo,
-    id_estado_tramo,
-    dominio_camion,
-    id_ruta,
-    fh_inicio_estimada,
-    fh_fin_estimada,
-    costo_aproximado,
-    costo_real
-) VALUES
-    (-31.4123, -64.1830, -31.5001, -64.2509, 1, 1, null, 1, '2025-11-11T08:00:00', '2025-11-11T09:30:00', 1500.00, 0.00),
-
-    (-31.5001, -64.2509, -31.6005, -64.3200, 2, 2, null, 1, '2025-11-11T09:30:00', '2025-11-11T11:00:00', 2200.00, 0.00),
-
-    (-31.6005, -64.3200, -31.7500, -64.4000, 3, 3, null, 2, '2025-11-11T13:00:00', '2025-11-11T15:00:00', 3200.00, 3100.00);
-
--- 🔹 Tramo con fh_fin_real real (para ruta 1)
+-- Tramo ejemplo para ruta 1
 INSERT INTO tramo (
     latitud_origen,
     longitud_origen,
@@ -71,13 +46,189 @@ INSERT INTO tramo (
     -64.3800,
     4,  -- deposito-destino
     4,  -- Finalizado
-    null,
+    NULL,
     1,  -- Ruta 1
     '2025-11-11T11:00:00',
-    '2025-11-11T12:10:00',   -- fh_fin_real REAL
+    '2025-11-11T12:10:00',
     '2025-11-11T11:00:00',
     '2025-11-11T12:10:00',
     1800.00,
     1750.00
 );
 
+-- ========================================================
+-- NUEVA RUTA PARA SOLICITUD EN TRÁNSITO
+-- ========================================================
+-- Ruta 3 con 5 tramos (3 finalizados, 2 en curso)
+INSERT INTO ruta (cantidad_tramos, cantidad_depositos, duracion_estimada)
+VALUES 
+    (5, 2, 480);  -- id_ruta = 3
+
+-- ========================================================
+-- TRAMOS DE LA RUTA 3
+-- ========================================================
+
+-- Tramo 1 - Finalizado
+INSERT INTO tramo (
+    latitud_origen,
+    longitud_origen,
+    latitud_destino,
+    longitud_destino,
+    id_tipo_tramo,
+    id_estado_tramo,
+    dominio_camion,
+    id_ruta,
+    fh_inicio_real,
+    fh_fin_real,
+    fh_inicio_estimada,
+    fh_fin_estimada,
+    costo_aproximado,
+    costo_real
+) VALUES (
+    -31.4200,
+    -64.1900,
+    -31.4300,
+    -64.2000,
+    1,   -- origen-destino
+    4,   -- Finalizado
+    'AA111BB',
+    3,   -- Ruta 3
+    '2025-11-14T08:00:00',
+    '2025-11-14T09:30:00',
+    '2025-11-14T08:00:00',
+    '2025-11-14T09:30:00',
+    30000.00,
+    29500.00
+);
+
+-- Tramo 2 - Finalizado
+INSERT INTO tramo (
+    latitud_origen,
+    longitud_origen,
+    latitud_destino,
+    longitud_destino,
+    id_tipo_tramo,
+    id_estado_tramo,
+    dominio_camion,
+    id_ruta,
+    fh_inicio_real,
+    fh_fin_real,
+    fh_inicio_estimada,
+    fh_fin_estimada,
+    costo_aproximado,
+    costo_real
+) VALUES (
+    -31.4300,
+    -64.2000,
+    -31.4400,
+    -64.2100,
+    2,   -- origen-deposito
+    4,   -- Finalizado
+    'AA111BB',
+    3,
+    '2025-11-14T10:00:00',
+    '2025-11-14T11:10:00',
+    '2025-11-14T10:00:00',
+    '2025-11-14T11:10:00',
+    25000.00,
+    24800.00
+);
+
+-- Tramo 3 - Finalizado (el más reciente)
+INSERT INTO tramo (
+    latitud_origen,
+    longitud_origen,
+    latitud_destino,
+    longitud_destino,
+    id_tipo_tramo,
+    id_estado_tramo,
+    dominio_camion,
+    id_ruta,
+    fh_inicio_real,
+    fh_fin_real,
+    fh_inicio_estimada,
+    fh_fin_estimada,
+    costo_aproximado,
+    costo_real
+) VALUES (
+    -31.4400,
+    -64.2100,
+    -31.4500,
+    -64.2200,
+    3,   -- deposito-deposito
+    4,   -- Finalizado
+    'AA111BB',
+    3,
+    '2025-11-14T12:00:00',
+    '2025-11-14T13:05:00',
+    '2025-11-14T12:00:00',
+    '2025-11-14T13:05:00',
+    28000.00,
+    27900.00
+);
+
+-- Tramo 4 - En curso (sin fh_fin_real)
+INSERT INTO tramo (
+    latitud_origen,
+    longitud_origen,
+    latitud_destino,
+    longitud_destino,
+    id_tipo_tramo,
+    id_estado_tramo,
+    dominio_camion,
+    id_ruta,
+    fh_inicio_real,
+    fh_fin_real,
+    fh_inicio_estimada,
+    fh_fin_estimada,
+    costo_aproximado,
+    costo_real
+) VALUES (
+    -31.4500,
+    -64.2200,
+    -31.4600,
+    -64.2300,
+    3,   -- deposito-deposito
+    2,   -- En curso
+    'AA111BB',
+    3,
+    '2025-11-14T14:00:00',
+    NULL,
+    '2025-11-14T14:00:00',
+    '2025-11-14T15:15:00',
+    26000.00,
+    NULL
+);
+
+-- Tramo 5 - En curso (sin fh_fin_real)
+INSERT INTO tramo (
+    latitud_origen,
+    longitud_origen,
+    latitud_destino,
+    longitud_destino,
+    id_tipo_tramo,
+    id_estado_tramo,
+    dominio_camion,
+    id_ruta,
+    fh_inicio_real,
+    fh_fin_real,
+    fh_inicio_estimada,
+    fh_fin_estimada,
+    costo_aproximado,
+    costo_real
+) VALUES (
+    -31.4600,
+    -64.2300,
+    -31.4700,
+    -64.2400,
+    4,   -- deposito-destino
+    2,   -- En curso
+    'AA111BB',
+    3,
+    '2025-11-14T16:00:00',
+    NULL,
+    '2025-11-14T16:00:00',
+    '2025-11-14T17:30:00',
+    30000.00,
+    NULL
+);

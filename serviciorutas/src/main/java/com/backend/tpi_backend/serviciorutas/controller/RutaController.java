@@ -8,6 +8,8 @@ import com.backend.tpi_backend.serviciorutas.service.TramoService;
 import com.backend.tpi_backend.serviciorutas.dto.CoordenadasDTO;
 import com.backend.tpi_backend.serviciorutas.dto.RutaPosicionDTO;
 import com.backend.tpi_backend.serviciorutas.dto.RutaTentativaDTO;
+import com.backend.tpi_backend.serviciorutas.dto.TramoDTO;
+import com.backend.tpi_backend.serviciorutas.dto.EstadiaCalculoDTO;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -38,13 +40,10 @@ public class RutaController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Ruta> obtenerPorId(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(rutaService.getById(id));
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Ruta> getById(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(rutaService.getById(id));
     }
+
 
     @PostMapping
     public Ruta crear(@RequestBody Ruta ruta) {
@@ -85,7 +84,6 @@ public class RutaController {
         List<Tramo> tramos = tramoService.obtenerTramosPorRuta(idRuta);
         return ResponseEntity.ok(tramos);
     }
-
 
     @PutMapping("/{idRuta}/asignar-camion")
     public ResponseEntity<Void> asignarCamion(
@@ -128,4 +126,17 @@ public class RutaController {
                 rutaService.obtenerUltimaPosicionRutas(idsRuta)
         );
     }
+
+    @GetMapping("/{idRuta}/tramos-detallados")
+    public ResponseEntity<List<TramoDTO>> obtenerTramosDetallados(@PathVariable Long idRuta) {
+        return ResponseEntity.ok(
+            rutaService.obtenerTramosDTOConDistancia(idRuta)
+        );
+    }
+
+    @GetMapping("/{id}/estadias")
+    public ResponseEntity<List<EstadiaCalculoDTO>> getEstadias(@PathVariable Long id) {
+        return ResponseEntity.ok(rutaService.calcularEstadiasRuta(id));
+    }
+
 }

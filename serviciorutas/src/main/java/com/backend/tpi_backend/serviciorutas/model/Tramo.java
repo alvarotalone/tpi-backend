@@ -45,6 +45,8 @@ public class Tramo {
     @Column(name = "dominio_camion")
     private String dominioCamion;
 
+    private Long idDeposito;
+
     // 🔹 Relación con Ruta (misma BD)
     @ManyToOne
     @JoinColumn(name = "id_ruta", nullable = false)

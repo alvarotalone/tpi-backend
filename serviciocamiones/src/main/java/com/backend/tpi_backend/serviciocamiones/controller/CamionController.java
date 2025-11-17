@@ -1,5 +1,6 @@
 package com.backend.tpi_backend.serviciocamiones.controller;
 
+import com.backend.tpi_backend.serviciocamiones.dto.CamionDTO;
 import com.backend.tpi_backend.serviciocamiones.model.Camion;
 import com.backend.tpi_backend.serviciocamiones.model.DetalleDisponibilidad;
 import com.backend.tpi_backend.serviciocamiones.service.CamionService;
@@ -26,7 +27,7 @@ public class CamionController {
         return camionService.obtenerTodos();
     }
 
-    @GetMapping("/{dominio}")
+    @GetMapping("/raw/{dominio}")
     public ResponseEntity<Camion> obtenerCamion(@PathVariable String dominio) {
         return camionService.obtenerPorDominio(dominio)
                 .map(ResponseEntity::ok)
@@ -124,6 +125,19 @@ public class CamionController {
         return camionService.obtenerDatosTecnicos(dominio)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{dominio}")
+    public ResponseEntity<CamionDTO> getByDominio(@PathVariable String dominio) {
+        return ResponseEntity.ok(camionService.buscarPorDominio(dominio));
+    }
+
+    @GetMapping("/elegibles")
+    public ResponseEntity<List<CamionDTO>> getElegibles(
+            @RequestParam Double peso,
+            @RequestParam Double volumen) {
+
+        return ResponseEntity.ok(camionService.listarElegibles(peso, volumen));
     }
 
 }
