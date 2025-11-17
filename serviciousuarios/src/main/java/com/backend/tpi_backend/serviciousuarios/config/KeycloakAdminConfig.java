@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class KeycloakAdminConfig {
 
-    // 1. Leemos las propiedades que pusimos en application.properties
     @Value("${keycloak.admin.server-url}")
     private String serverUrl;
 
@@ -25,18 +24,15 @@ public class KeycloakAdminConfig {
     @Value("${keycloak.admin.password}")
     private String password;
 
-    // 2. Creamos la "herramienta" (el Bean)
     @Bean
     public Keycloak keycloakAdminClient() {
-        // Usamos el KeycloakBuilder (de la dependencia que agregamos)
-        // para construir el cliente de admin
         return KeycloakBuilder.builder()
                 .serverUrl(serverUrl)
-                .realm(realm) // El realm "master" para loguearnos como admin
-                .clientId(clientId) // El cliente "admin-cli"
-                .username(username) // El usuario "admin"
-                .password(password) // La clave "admin123"
-                .grantType("password") // Le decimos que nos logueamos con usuario y clave
+                .realm(realm)
+                .clientId(clientId)
+                .username(username)
+                .password(password)
+                .grantType("password")
                 .build();
     }
 }
