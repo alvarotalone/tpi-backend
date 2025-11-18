@@ -4,6 +4,7 @@ package com.backend.tpi_backend.serviciosolicitudes.service;
 import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudRequestDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.SolicitudResponseDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.TramoDTO;
+import com.backend.tpi_backend.serviciosolicitudes.dto.TramoEstaticoDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.CamionDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.ClienteDTO;
 import com.backend.tpi_backend.serviciosolicitudes.dto.ContenedorDTO;
@@ -652,24 +653,20 @@ public class SolicitudService {
         // === Obtener rutas de un camion ====
         public List<RutaConTramosDTO> obtenerRutasConTramosPorCamion(String dominioCamion) {
 
-        // Estados que te interesan
         List<String> estadosValidos = List.of("PROGRAMADA", "EN_TRANSITO");
 
-        // 1) Buscar solicitudes por dominio_camion y estado
         List<Solicitud> solicitudes = repo
                 .findByDominioCamionAndEstado_DescripcionIn(dominioCamion, estadosValidos);
 
-        // 2) Para cada solicitud, ir al servicio de rutas y traer los tramos
         List<RutaConTramosDTO> resultado = new ArrayList<>();
 
         for (Solicitud s : solicitudes) {
 
         Long idRuta = s.getIdRuta();
 
-        // Llamada al servicio rutas: /{idRuta}/tramos-detallados
         String url = rutasBaseUrl + "/rutas/" + idRuta + "/tramos-detallados";
 
-        TramoDTO[] tramosArray = restTemplate.getForObject(url, TramoDTO[].class);
+        TramoEstaticoDTO[] tramosArray = restTemplate.getForObject(url, TramoEstaticoDTO[].class);
 
         RutaConTramosDTO dto = new RutaConTramosDTO();
         dto.setIdSolicitud(s.getId());

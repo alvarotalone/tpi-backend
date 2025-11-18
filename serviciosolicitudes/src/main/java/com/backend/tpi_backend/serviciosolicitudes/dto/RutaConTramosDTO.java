@@ -9,5 +9,5 @@ public class RutaConTramosDTO {
     private Long idSolicitud;
     private Long idRuta;
     private String estadoSolicitud;      // PROGRAMADA, EN_TRANSITO, etc.
-    private List<TramoDTO> tramos;       // Reusás el TramoDTO del servicio rutas (o una copia igual)
+    private List<TramoEstaticoDTO> tramos;       // Reusás el TramoDTO del servicio rutas (o una copia igual)
 }

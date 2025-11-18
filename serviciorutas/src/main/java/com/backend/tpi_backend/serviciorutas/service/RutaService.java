@@ -21,6 +21,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.client.RestClientException;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -195,17 +196,31 @@ public class RutaService {
         tramoRepository.saveAll(tramos);
     }
 
+    // == Calcular distancia tramo ==
     public double calcularDistanciaTramo(Tramo tramo) {
 
-        var resultado = osrmClient.obtenerRuta(
-                tramo.getLatitudOrigen(),
-                tramo.getLongitudOrigen(),
-                tramo.getLatitudDestino(),
-                tramo.getLongitudDestino()
-        );
+        try {
+            var resultado = osrmClient.obtenerRuta(
+                    tramo.getLatitudOrigen(),
+                    tramo.getLongitudOrigen(),
+                    tramo.getLatitudDestino(),
+                    tramo.getLongitudDestino()
+            );
 
-        return resultado.getDistance();  // distancia en metros
+            return resultado.getDistance();  // distancia en metros
+
+        } catch (Exception e) {
+
+            System.out.println(
+                    "[OSRM OFF] No se pudo calcular distancia del tramo " + tramo.getId()
+                    + ". Se devuelve 0 metros. Motivo: " + e.getMessage()
+            );
+
+            // Fallback seguro: distancia = 0  
+            return 0.0;
+        }
     }
+
 
     /**
      * Calcula la distancia TOTAL (suma) de todos los tramos de una ruta.
