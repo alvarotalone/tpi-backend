@@ -38,11 +38,11 @@ services:
       - "8080:8080"
     environment:
       # Conexión con Keycloak (usamos nombre del servicio "keycloak")
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER-URI: http://keycloak:8080/realms/tpi-backend
-      KEYCLOAK_SERVER-URL: http://keycloak:8080
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/tpi-backend
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
       KEYCLOAK_REALM: tpi-backend
-      KEYCLOAK_CLIENT-ID: tpi-backend-client
-      KEYCLOAK_REDIRECT-URI: http://localhost:8080/api/login/oauth2/code/keycloak
+      KEYCLOAK_CLIENT_ID: tpi-backend-client
+      KEYCLOAK_REDIRECT_URI: http://localhost:8080/api/login/oauth2/code/keycloak
       # Mapa de Rutas para el Gateway
       SPRING_CLOUD_GATEWAY_ROUTES_0_URI: http://servicioclientes:8081
       SPRING_CLOUD_GATEWAY_ROUTES_1_URI: http://serviciocamiones:8082
@@ -109,14 +109,17 @@ services:
     container_name: serviciousuarios
     ports:
       - "8085:8085"
+    volumes:
+    - usuarios_data:/app/data 
     environment:
       # Configuración del Puente a Keycloak
-      KEYCLOAK_ADMIN_SERVER-URL: http://keycloak:8080 # ¡Ojo! Acá usa el puerto interno de Docker
+      KEYCLOAK_ADMIN_SERVER_URL: http://keycloak:8080
       KEYCLOAK_ADMIN_REALM: master
-      KEYCLOAK_ADMIN_CLIENT-ID: admin-cli
+      KEYCLOAK_ADMIN_CLIENT_ID: admin-cli
       KEYCLOAK_ADMIN_USERNAME: admin
       KEYCLOAK_ADMIN_PASSWORD: admin123
-      KEYCLOAK_TARGET-REALM: tpi-backend
+      KEYCLOAK_TARGET_REALM: tpi-backend
+
     depends_on:
       - keycloak
 
@@ -136,3 +139,4 @@ services:
 
 volumes:
   keycloak_data:
+  usuarios_data:

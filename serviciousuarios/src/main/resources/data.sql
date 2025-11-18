@@ -1,3 +1,4 @@
+/*
 -- ====== ROLES ======
 INSERT INTO rol (descripcion) VALUES ('ADMIN');
 INSERT INTO rol (descripcion) VALUES ('OPERADOR');

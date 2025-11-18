@@ -5,7 +5,7 @@ FROM eclipse-temurin:21-jdk
 WORKDIR /app
 
 # 3. Copiamos el jar
-COPY target/serviciodepositos-0.0.1-SNAPSHOT.jar app.jar
+COPY target/serviciodepositos-1.0.0.jar app.jar
 
 # 4. Ejecutamos
 ENTRYPOINT ["java", "-jar", "app.jar"]
